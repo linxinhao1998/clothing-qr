@@ -7,7 +7,7 @@
 <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>织女服装标签二维码</title>
+<title>款式详情</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23232a31'/%3E%3Cg fill='%23fff'%3E%3Cpath d='M16 14h11v11H16zM31 14h4v4h-4zM38 14h10v10H38zM16 31h10v4H16zM29 31h4v4h-4zM36 31h12v4H36zM16 41h4v4h-4zM23 41h12v4H23zM38 41h10v4H38zM16 50h4v4h-4zM23 50h6v4h-6zM32 50h4v4h-4zM39 50h9v4h-9z'/%3E%3Cpath d='M52 16v7h-4v-7h4zm-5 10h4v4h-4v-4zm5 7v7h-4v-7h4zm-9 3v-7h4v7h-4zm0 10v7h4v-7h-4zm9 3v7h-4v-7h4z' fill='%23e0472c'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 /* ===== 设计变量 ===== */
@@ -359,6 +359,7 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
 .show-row.price .v{color:var(--accent-dark);}
 .show-foot{text-align:center;color:#9aa0a8;font-size:12px;margin-top:24px;}
 </style>
+<script src="data.js"></script>
 </head>
 <body>
 
@@ -541,14 +542,12 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
   <!-- 扫码打开的详情页（全屏，无导航） -->
   <section class="view" id="viewShow">
     <div class="show-wrap">
-      <div class="show-brand">织女</div>
       <h1 class="show-style" id="showStyle"></h1>
       <div class="show-card">
         <div class="show-row"><span class="k">码数</span><span class="v" id="showSizes"></span></div>
         <div class="show-row"><span class="k">总件数</span><span class="v" id="showTotal"></span></div>
         <div class="show-row price"><span class="k">单价</span><span class="v" id="showPrice"></span></div>
       </div>
-      <p class="show-foot">扫码查看 · 织女服装</p>
     </div>
   </section>
 
@@ -2981,15 +2980,12 @@ function load(){
     var st=JSON.parse(localStorage.getItem(LS_SET)||'null');
     if(st&&st.w>=20&&st.w<=100&&st.h>=30&&st.h<=140){ labelW=st.w; labelH=st.h; }
   }catch(e){}
-  // 从云端 data.json 拉取共享数据
-  fetch('data.json?_='+Date.now()).then(function(r){return r.json();}).then(function(data){
-    if(data&&Array.isArray(data.items)&&data.items.length){
-      items=data.items;
-      try{ localStorage.setItem(LS_ITEMS,JSON.stringify(items)); }catch(e){}
-      renderQuery(); renderEditList();
-      el.statCount.textContent=items.length+' 款';
-    }
-  }).catch(function(){});
+  // 从云端 data.js 读取共享数据
+  var data=(typeof window.DATA!=='undefined'&&window.DATA)||null;
+  if(data&&Array.isArray(data.items)&&data.items.length){
+    items=data.items;
+    try{ localStorage.setItem(LS_ITEMS,JSON.stringify(items)); }catch(e){}
+  }
 }
 function migrate(){
   var changed=false;
@@ -3033,11 +3029,12 @@ function qrText(it){
 function b64utf(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function pushToCloud(){
   if(!GH_TOKEN) return;
-  var content=b64utf({items:items});
-  fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.json',{headers:{Authorization:'token '+GH_TOKEN}})
+  var body='window.DATA='+JSON.stringify({items:items})+';';
+  var content=b64utf(body);
+  fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.js',{headers:{Authorization:'token '+GH_TOKEN}})
     .then(function(r){return r.ok?r.json():{};})
     .then(function(cur){
-      return fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.json',{
+      return fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.js',{
         method:'PUT',
         headers:{Authorization:'token '+GH_TOKEN,'Accept':'application/vnd.github+json'},
         body:JSON.stringify({message:'update items',content:content,sha:cur&&cur.sha})
@@ -3291,13 +3288,12 @@ function renderShow(){
   var sm=location.hash.match(/[?&]s=([^&]+)/);
   if(!sm) return;
   var style=decodeURIComponent(sm[1]);
-  el.showStyle.textContent=style; el.showSizes.textContent='加载中…';
-  fetch('data.json?_='+Date.now()).then(function(r){return r.json();}).then(function(data){
-    var list=(data&&data.items)||[], it=null;
-    for(var i=0;i<list.length;i++){ if(list[i].style===style){ it=list[i]; break; } }
-    if(!it){ el.showSizes.textContent='未找到该款号'; el.showTotal.textContent=''; el.showPrice.textContent=''; return; }
-    fillShow({s:it.style,sz:it.sizes,t:totalOf(it),p:num(it.price)});
-  }).catch(function(){ el.showSizes.textContent='数据加载失败'; });
+  el.showStyle.textContent=style;
+  var data=(typeof window.DATA!=='undefined'&&window.DATA)||null;
+  var list=(data&&data.items)||[], it=null;
+  for(var i=0;i<list.length;i++){ if(list[i].style===style){ it=list[i]; break; } }
+  if(!it){ el.showSizes.textContent='未找到该款号'; el.showTotal.textContent=''; el.showPrice.textContent=''; return; }
+  fillShow({s:it.style,sz:it.sizes,t:totalOf(it),p:num(it.price)});
 }
 function onHash(){
   var h=location.hash.replace(/^#\/?/,'');

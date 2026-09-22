@@ -1,0 +1,3440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>织女服装标签二维码</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23232a31'/%3E%3Cg fill='%23fff'%3E%3Cpath d='M16 14h11v11H16zM31 14h4v4h-4zM38 14h10v10H38zM16 31h10v4H16zM29 31h4v4h-4zM36 31h12v4H36zM16 41h4v4h-4zM23 41h12v4H23zM38 41h10v4H38zM16 50h4v4h-4zM23 50h6v4h-6zM32 50h4v4h-4zM39 50h9v4h-9z'/%3E%3Cpath d='M52 16v7h-4v-7h4zm-5 10h4v4h-4v-4zm5 7v7h-4v-7h4zm-9 3v-7h4v7h-4zm0 10v7h4v-7h-4zm9 3v7h-4v-7h4z' fill='%23e0472c'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+/* ===== 设计变量 ===== */
+:root{
+  --bg:#F3F2ED;
+  --surface:#FFFFFF;
+  --ink:#1C1F23;
+  --muted:#66707B;
+  --line:#E4E1D9;
+  --line-strong:#D4D0C5;
+  --accent:#B23A26;
+  --accent-dark:#972F1E;
+  --accent-soft:#FBEFEB;
+  --dark:#232A31;
+  --dark-2:#2C343D;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(28,31,35,.06), 0 6px 20px rgba(28,31,35,.08);
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --label-w:60;   /* 打印标签长 mm */
+  --label-h:40;   /* 打印标签宽 mm */
+  --qr-mm:27;     /* 二维码边长 mm（随标签自动计算） */
+  --mmp:3.4;      /* 屏幕预览缩放（打印时按真实尺寸 3.7795） */
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--font);background:#E4E2DB;color:var(--ink);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,select{font-family:inherit;font-size:15px;color:var(--ink);}
+::selection{background:rgba(178,58,38,.16);}
+[hidden]{display:none !important;}
+
+/* ===== 手机容器 ===== */
+.phone{
+  width:100%;max-width:440px;min-height:100dvh;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  box-shadow:0 0 40px rgba(28,31,35,.14);
+}
+.appbar{
+  background:var(--dark);color:#fff;
+  padding:14px 16px calc(12px + env(safe-area-inset-top));
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex:none;
+}
+.appbar .title{display:flex;align-items:center;gap:10px;min-width:0;}
+.appbar h1{font-size:16px;font-weight:700;letter-spacing:.02em;white-space:nowrap;}
+.appbar .sub{font-size:11.5px;color:rgba(255,255,255,.55);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stat-chip{
+  flex:none;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);
+  padding:5px 12px;border-radius:999px;font-size:12.5px;font-variant-numeric:tabular-nums;
+  color:rgba(255,255,255,.92);
+}
+
+/* ===== 视图容器 ===== */
+.view{flex:1;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(90px + env(safe-area-inset-bottom));}
+.view.active{display:block;}
+.panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;
+}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.panel-head h2{font-size:15.5px;font-weight:700;}
+.panel-head .hint{font-size:12px;color:var(--muted);}
+.tag-pill{font-size:11.5px;color:var(--accent);background:var(--accent-soft);border:1px solid #F0D5CB;padding:2px 9px;border-radius:999px;font-weight:600;}
+
+/* ===== 表单 ===== */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px;}
+.field label{font-size:13px;color:var(--muted);font-weight:500;}
+.field label .req{color:var(--accent);}
+.field input{
+  width:100%;height:42px;padding:0 12px;
+  border:1px solid var(--line-strong);border-radius:9px;background:#FCFCFA;outline:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+.field input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(178,58,38,.12);}
+.field input[type=number]{font-variant-numeric:tabular-nums;}
+
+/* 码数明细 */
+.size-rows{border:1px solid var(--line);border-radius:9px;background:#FCFCFA;padding:10px;display:flex;flex-direction:column;gap:8px;}
+.size-row{display:flex;gap:8px;align-items:center;}
+.size-row .size-name{flex:1.1;min-width:0;}
+.size-row .size-qty{flex:.9;min-width:0;}
+.size-row input{height:38px;padding:0 10px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;outline:none;font-size:14.5px;}
+.size-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(178,58,38,.12);}
+.size-del{
+  flex:none;width:32px;height:32px;border-radius:8px;color:var(--muted);
+  font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;
+  border:1px solid transparent;
+}
+.size-del:hover{color:#B23A26;background:#FCF3F0;border-color:#E4C4BC;}
+.size-add{width:100%;height:34px;margin-top:2px;border:1px dashed var(--line-strong);border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;}
+.size-add:hover{color:var(--accent);border-color:var(--accent);}
+.total-line{
+  margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--accent-soft);
+  border:1px solid #F0D5CB;font-size:13.5px;color:var(--ink);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.total-line b{font-size:18px;font-weight:800;color:var(--accent-dark);font-variant-numeric:tabular-nums;}
+
+/* 图片上传 */
+.img-upload{
+  position:relative;border:1.5px dashed var(--line-strong);border-radius:9px;
+  min-height:96px;display:flex;align-items:center;justify-content:center;
+  background:#FCFCFA;cursor:pointer;transition:border-color .15s;overflow:hidden;
+}
+.img-upload:hover{border-color:var(--accent);}
+.img-placeholder{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--muted);font-size:12.5px;padding:14px;}
+.img-placeholder svg{color:var(--line-strong);}
+.img-upload img{max-width:120px;max-height:92px;object-fit:contain;padding:6px;}
+.img-clear{position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;background:rgba(28,31,35,.72);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;}
+
+/* ===== 按钮 ===== */
+.btn{
+  height:44px;padding:0 18px;border-radius:10px;font-size:15px;font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  transition:background .15s, transform .05s;white-space:nowrap;
+}
+.btn:active{transform:translateY(1px);}
+.btn.primary{background:var(--accent);color:#fff;width:100%;}
+.btn.primary:hover{background:var(--accent-dark);}
+.btn.dark{background:var(--dark);color:#fff;}
+.btn.ghost{background:#fff;border:1px solid var(--line-strong);color:var(--ink);}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn.mini{height:34px;padding:0 12px;font-size:13px;font-weight:500;}
+.btn.danger{background:#A43A2A;color:#fff;}
+.btn.danger:hover{background:#8B2E20;}
+.btn.danger-ghost{background:#fff;border:1px solid var(--line-strong);color:#A43A2A;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn{flex:1;}
+
+/* ===== 查询页 ===== */
+.search-bar{display:flex;gap:8px;margin-bottom:12px;}
+.search-bar input{
+  flex:1;height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;
+  background:#fff;outline:none;font-size:14px;
+}
+.search-bar input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(178,58,38,.12);}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.toolbar .spacer{flex:1;}
+.q-item{
+  display:flex;align-items:center;gap:11px;padding:11px 6px;border-bottom:1px solid var(--line);
+  transition:background .12s;
+}
+.q-item:hover{background:#FAF9F5;}
+.q-item.checked{background:var(--accent-soft);}
+.q-check{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex:none;}
+.q-thumb{
+  width:48px;height:48px;border-radius:8px;overflow:hidden;flex:none;
+  background:#F0EEE7;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:#BDB7A9;
+}
+.q-thumb img{width:100%;height:100%;object-fit:cover;}
+.q-thumb svg{width:20px;height:20px;}
+.q-main{flex:1;min-width:0;}
+.q-style{font-size:15px;font-weight:700;letter-spacing:.01em;}
+.q-sizes{margin-top:2px;font-size:12.3px;color:var(--muted);word-break:break-all;line-height:1.45;}
+.q-sizes b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
+.q-meta{margin-top:1px;font-size:12.3px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.q-meta b{color:var(--accent-dark);font-weight:700;}
+.q-actions{display:flex;flex-direction:column;gap:5px;flex:none;}
+.icon-btn{height:30px;padding:0 10px;border-radius:7px;font-size:12px;font-weight:500;color:var(--muted);border:1px solid var(--line);background:#fff;}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent);}
+.empty{padding:46px 18px;text-align:center;color:var(--muted);}
+.empty svg{margin-bottom:12px;color:#CFCABC;}
+.empty h3{font-size:15.5px;color:var(--ink);margin-bottom:5px;}
+.empty p{font-size:13px;}
+
+/* 打印设置折叠面板 */
+.set-panel{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.set-head{
+  width:100%;padding:11px 13px;background:#fff;display:flex;align-items:center;justify-content:space-between;
+  font-size:13.5px;font-weight:600;color:var(--ink);
+}
+.set-head svg{transition:transform .18s;color:var(--muted);}
+.set-panel.open .set-head svg{transform:rotate(180deg);}
+.set-body{display:none;padding:13px;border-top:1px solid var(--line);background:#FCFCFA;}
+.set-panel.open .set-body{display:block;}
+.set-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.set-field{display:flex;flex-direction:column;gap:5px;}
+.set-field label{font-size:12.5px;color:var(--muted);}
+.set-field input{height:38px;padding:0 10px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;outline:none;font-variant-numeric:tabular-nums;}
+.set-field input:focus{border-color:var(--accent);}
+.set-note{font-size:11.5px;color:var(--muted);margin-top:9px;line-height:1.6;}
+.set-actions{display:flex;gap:8px;margin-top:11px;}
+.set-actions .btn{flex:1;height:38px;font-size:13.5px;}
+
+/* 底部操作条（查询页） */
+.action-bar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom));
+  width:calc(100% - 24px);max-width:416px;z-index:30;
+  background:var(--dark);border-radius:12px;padding:9px 10px;
+  display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.action-bar .sel-info{color:#fff;font-size:12.5px;font-weight:600;padding:0 6px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.action-bar .btn{height:36px;font-size:13px;padding:0 12px;flex:1;}
+.action-bar .btn.primary{background:var(--accent);}
+.action-bar .btn.dark{background:var(--dark-2);border:1px solid rgba(255,255,255,.16);}
+
+/* ===== 修改页 ===== */
+.edit-list-item{
+  display:flex;align-items:center;gap:11px;padding:11px 6px;border-bottom:1px solid var(--line);
+}
+.edit-list-item:hover{background:#FAF9F5;}
+.back-bar{display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.back-bar .btn{height:36px;font-size:13px;padding:0 12px;}
+.back-bar h2{font-size:15.5px;font-weight:700;flex:1;}
+
+/* ===== 详情弹层（扫码效果） ===== */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(28,31,35,.5);z-index:60;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal-mask.open{display:flex;}
+.modal{
+  width:100%;max-width:440px;background:var(--surface);
+  border-radius:16px 16px 0 0;max-height:88dvh;overflow-y:auto;
+  padding:18px 18px calc(24px + env(safe-area-inset-bottom));
+  animation:slideUp .22s ease;
+}
+@keyframes slideUp{from{transform:translateY(30px);opacity:.6;}to{transform:translateY(0);opacity:1;}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;}
+.modal-head h3{font-size:16px;font-weight:700;}
+.modal-close{width:30px;height:30px;border-radius:50%;background:#F0EEE7;color:var(--muted);font-size:16px;display:flex;align-items:center;justify-content:center;}
+.detail-img{
+  width:100%;max-height:240px;object-fit:contain;background:#F0EEE7;
+  border:1px solid var(--line);border-radius:10px;margin-bottom:13px;padding:8px;
+}
+.detail-qr-wrap{margin-bottom:13px;text-align:center;}
+.detail-qr{display:inline-block;width:240px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(28,31,35,.06);}
+.detail-qr svg{display:block;width:100%;height:100%;}
+.detail-qr-note{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.5;}
+.detail-block{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:13px;}
+.detail-row{display:flex;align-items:baseline;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line);}
+.detail-row:last-child{border-bottom:none;}
+.detail-row .k{flex:none;width:58px;font-size:12.5px;color:var(--muted);}
+.detail-row .v{flex:1;font-size:14px;font-weight:600;word-break:break-all;font-variant-numeric:tabular-nums;}
+.qr-text-block{
+  background:#F6F5F0;border:1px dashed var(--line-strong);border-radius:9px;
+  padding:11px 13px;font-size:12.5px;line-height:1.7;color:var(--ink);
+  font-variant-numeric:tabular-nums;word-break:break-all;
+}
+.qr-text-block .t{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+
+/* ===== 底部 Tab 栏 ===== */
+.tabbar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:0;
+  width:100%;max-width:440px;z-index:40;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  display:flex;padding:6px 8px calc(8px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 20px rgba(28,31,35,.06);
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 0;border-radius:10px;color:var(--muted);font-size:11px;font-weight:500;
+  transition:color .15s, background .15s;
+}
+.tab svg{width:22px;height:22px;}
+.tab.active{color:var(--accent);background:var(--accent-soft);}
+
+/* ===== 打印预览（屏幕态，手机容器外） ===== */
+#printPreview{display:none;}
+#printPreview.open{display:block;width:100%;max-width:440px;margin:0 auto 60px;padding:0 12px;}
+.pv-toolbar{
+  background:var(--dark);color:#fff;border-radius:12px 12px 0 0;
+  padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.pv-toolbar h3{font-size:14px;font-weight:700;}
+.pv-toolbar .hint{font-size:11.5px;color:rgba(255,255,255,.6);margin-top:1px;}
+.pv-toolbar .btn{height:32px;padding:0 12px;font-size:12.5px;background:rgba(255,255,255,.13);color:#fff;border-radius:8px;}
+.pv-stage{background-color:#ECEAE2;background-image:radial-gradient(circle,#D7D2C5 1.1px,transparent 1.1px);background-size:17px 17px;border:1px solid var(--line);border-radius:0 0 12px 12px;padding:12px;overflow-x:auto;}
+.print-grid{display:flex;flex-direction:column;align-items:center;gap:calc(2.5mm * var(--mmp) * 1px);}
+
+/* 标签卡片 */
+/* 标签：横/竖形状内部统一为 二维码左、文字右 */
+.label-card{
+  flex:none;
+  width:calc(var(--label-w) * var(--mmp) * 1px);
+  height:calc(var(--label-h) * var(--mmp) * 1px);
+  background:#fff;border:calc(0.3mm * var(--mmp) * 1px) solid #B9B4A8;
+  border-radius:calc(1mm * var(--mmp) * 1px);
+  box-shadow:0 1px 3px rgba(28,31,35,.08);
+  display:flex;flex-direction:row;align-items:center;
+  padding:calc(3.5mm * var(--mmp) * 1px) calc(5mm * var(--mmp) * 1px);
+  gap:calc(3mm * var(--mmp) * 1px);
+  break-inside:avoid;page-break-inside:avoid;
+}
+.qr-box{flex:none;width:calc(var(--qr-mm) * var(--mmp) * 1px);display:flex;flex-direction:column;align-items:center;gap:calc(0.9mm * var(--mmp) * 1px);}
+.qr-frame{
+  position:relative;width:calc(var(--qr-mm) * var(--mmp) * 1px);height:calc(var(--qr-mm) * var(--mmp) * 1px);
+  background:#fff;border:calc(0.25mm * var(--mmp) * 1px) solid #E2DCD0;
+  border-radius:calc(1.3mm * var(--mmp) * 1px);padding:calc(1.4mm * var(--mmp) * 1px);
+}
+.qr-frame svg{display:block;width:100%;height:100%;}
+.qr-frame::before,.qr-frame::after{content:'';position:absolute;width:calc(2.9mm * var(--mmp) * 1px);height:calc(2.9mm * var(--mmp) * 1px);pointer-events:none;}
+.qr-frame::before{top:calc(-0.15mm * var(--mmp) * 1px);left:calc(-0.15mm * var(--mmp) * 1px);border-top:calc(0.65mm * var(--mmp) * 1px) solid var(--accent);border-left:calc(0.65mm * var(--mmp) * 1px) solid var(--accent);border-top-left-radius:calc(1.4mm * var(--mmp) * 1px);}
+.qr-frame::after{bottom:calc(-0.15mm * var(--mmp) * 1px);right:calc(-0.15mm * var(--mmp) * 1px);border-bottom:calc(0.65mm * var(--mmp) * 1px) solid var(--accent);border-right:calc(0.65mm * var(--mmp) * 1px) solid var(--accent);border-bottom-right-radius:calc(1.4mm * var(--mmp) * 1px);}
+.qr-caption{font-size:calc(2.05mm * var(--mmp) * 1px);color:#8A8F96;font-weight:600;letter-spacing:.12em;white-space:nowrap;}
+.label-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.l-style{display:flex;align-items:center;font-size:calc(3.9mm * var(--mmp) * 1px);font-weight:800;line-height:1.12;word-break:break-all;letter-spacing:.02em;margin-bottom:calc(1.2mm * var(--mmp) * 1px);}
+.l-style .dot{flex:none;width:calc(1.9mm * var(--mmp) * 1px);height:calc(1.9mm * var(--mmp) * 1px);border-radius:50%;background:var(--accent);margin-right:calc(1.3mm * var(--mmp) * 1px);}
+.l-divider{height:calc(0.3mm * var(--mmp) * 1px);background:var(--line);margin-bottom:calc(1.3mm * var(--mmp) * 1px);}
+.l-sizes{display:flex;flex-wrap:wrap;gap:calc(1.3mm * var(--mmp) * 1px);margin-bottom:calc(1.5mm * var(--mmp) * 1px);}
+.sz-chip{font-size:calc(2.45mm * var(--mmp) * 1px);font-weight:600;color:var(--ink);background:#F4F2EC;border:calc(0.22mm * var(--mmp) * 1px) solid var(--line-strong);border-radius:calc(0.9mm * var(--mmp) * 1px);padding:calc(0.4mm * var(--mmp) * 1px) calc(1mm * var(--mmp) * 1px);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.l-row{display:flex;justify-content:space-between;align-items:baseline;gap:calc(1.5mm * var(--mmp) * 1px);font-size:calc(2.5mm * var(--mmp) * 1px);line-height:1.4;color:var(--muted);}
+.l-row b{color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums;font-size:calc(2.85mm * var(--mmp) * 1px);}
+.l-row.price b{color:var(--accent-dark);}
+
+/* ===== Toast ===== */
+#toast{
+  position:fixed;left:50%;bottom:130px;transform:translateX(-50%) translateY(16px);
+  background:var(--dark);color:#fff;font-size:13px;
+  padding:9px 16px;border-radius:999px;opacity:0;pointer-events:none;z-index:99;
+  transition:opacity .2s, transform .2s;max-width:86vw;text-align:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.18);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.err{background:#A43A2A;}
+
+/* ===== 打印样式 ===== */
+@media print{
+  @page{size:A4;margin:10mm;}
+  :root{--mmp:3.7795;}
+  html,body{background:#fff !important;display:block;min-height:0;}
+  .phone,.tabbar,#toast,.no-print{display:none !important;}
+  #printPreview{display:block !important;max-width:none;margin:0;padding:0;}
+  .pv-toolbar{display:none !important;}
+  .pv-stage{background:#fff;border:none;padding:0;overflow:visible;border-radius:0;}
+  .print-grid{gap:4mm;}
+  .label-card{box-shadow:none;border-radius:0;}
+}
+
+/* ===== 扫码详情页 ===== */
+#viewShow{display:none;min-height:100%;background:var(--bg);}
+#viewShow.active{display:flex;align-items:center;justify-content:center;padding:24px;}
+.show-wrap{width:100%;max-width:380px;}
+.show-brand{text-align:center;color:var(--accent);font-weight:700;letter-spacing:.5em;font-size:15px;margin-bottom:6px;}
+.show-style{text-align:center;font-size:34px;font-weight:800;color:var(--ink);letter-spacing:.02em;margin:0 0 20px;}
+.show-card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(28,31,35,.06);}
+.show-row{display:flex;justify-content:space-between;align-items:baseline;padding:16px 18px;border-bottom:1px solid var(--line);font-size:16px;}
+.show-row:last-child{border-bottom:none;}
+.show-row .k{color:var(--muted);font-weight:600;white-space:nowrap;flex-shrink:0;margin-right:16px;}
+.show-row .v{color:var(--ink);font-weight:800;font-size:18px;text-align:right;line-height:1.5;word-break:break-all;}
+.show-row.price .v{color:var(--accent-dark);}
+.show-foot{text-align:center;color:#9aa0a8;font-size:12px;margin-top:24px;}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+
+  <!-- 顶栏 -->
+  <header class="appbar no-print">
+    <div class="title">
+      <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="#2C343D"/>
+        <g fill="#fff">
+          <path d="M16 14h11v11H16zM31 14h4v4h-4zM38 14h10v10H38zM16 31h10v4H16zM29 31h4v4h-4zM36 31h12v4H36zM16 41h4v4h-4zM23 41h12v4H23zM38 41h10v4H38zM16 50h4v4h-4zM23 50h6v4h-6zM32 50h4v4h-4zM39 50h9v4h-9z"/>
+        </g>
+        <path d="M52 16v7h-4v-7h4zm-5 10h4v4h-4v-4zm5 7v7h-4v-7h4zm-9 3v-7h4v7h-4zm0 10v7h4v-7h-4zm9 3v7h-4v-7h4z" fill="#E0472C"/>
+      </svg>
+      <div>
+        <h1>织女服装标签二维码</h1>
+        <div class="sub">款号录入 · 批量生成 · 吊牌打印</div>
+      </div>
+    </div>
+    <div class="stat-chip" id="statCount">0 款</div>
+  </header>
+
+  <!-- ===== 录入页 ===== -->
+  <section class="view" id="viewEntry">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>录入新款式</h2>
+        <span class="tag-pill">新增</span>
+      </div>
+      <form id="entryForm" novalidate>
+        <div class="field">
+          <label for="eStyle">款号 <span class="req">*</span></label>
+          <input id="eStyle" placeholder="如：A2026-01" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>码数及数量 <span class="req">*</span>（总件数自动计算）</label>
+          <div class="size-rows" id="eSizeRows"></div>
+          <button type="button" class="size-add" data-add-row="eSizeRows">+ 添加码数</button>
+          <div class="total-line"><span>总件数（自动计算）</span><b id="eTotal">0 件</b></div>
+        </div>
+        <div class="field">
+          <label for="ePrice">单价（元）</label>
+          <input id="ePrice" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>图片（可选，仅详情/扫码查看，打印不显示）</label>
+          <div class="img-upload" id="eImgDrop" role="button" tabindex="0" aria-label="上传服装图片">
+            <input type="file" id="eImg" accept="image/*" hidden>
+            <div class="img-placeholder" id="eImgPh">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L7 22"/></svg>
+              <span>点击上传服装图片（自动压缩）</span>
+            </div>
+            <img id="eImgPrev" alt="图片预览" hidden>
+            <button type="button" class="img-clear" id="eImgClear" title="移除图片" hidden>×</button>
+          </div>
+        </div>
+        <button type="submit" class="btn primary">添加款式</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== 查询页 ===== -->
+  <section class="view" id="viewQuery">
+    <div class="panel">
+      <div class="search-bar">
+        <input id="qSearch" placeholder="搜索款号…" autocomplete="off">
+        <button type="button" class="btn mini ghost" id="qSelAll">全选</button>
+        <button type="button" class="btn mini ghost" id="qSelNone">全不选</button>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn mini ghost" id="openSet">打印设置</button>
+        <span class="spacer"></span>
+        <span class="hint" id="qCount" style="font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;">共 0 款</span>
+      </div>
+
+      <!-- 打印设置 -->
+      <div class="set-panel" id="setPanel">
+        <button type="button" class="set-head" id="setHead">
+          <span>打印标签尺寸（宽 × 高）</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="set-body">
+          <div class="set-grid">
+            <div class="set-field">
+              <label>标签宽（mm）</label>
+              <input id="setW" type="number" min="20" max="100" step="5" inputmode="numeric">
+            </div>
+            <div class="set-field">
+              <label>标签高（mm）</label>
+              <input id="setH" type="number" min="30" max="140" step="5" inputmode="numeric">
+            </div>
+          </div>
+          <div class="set-actions">
+            <button type="button" class="btn dark" id="setSave">应用尺寸</button>
+            <button type="button" class="btn ghost" id="setReset">恢复默认 60×40</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="qList"></div>
+      <div class="empty" id="qEmpty" hidden>
+        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 12 22 2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
+        <h3>还没有款式</h3>
+        <p>到「录入」页添加服装款号、码数与数量。</p>
+      </div>
+    </div>
+
+    <!-- 底部操作条 -->
+    <div class="action-bar no-print">
+      <span class="sel-info" id="qSelInfo">已选 0 款</span>
+      <button type="button" class="btn dark" id="genQr">批量生成二维码</button>
+      <button type="button" class="btn primary" id="printBtn">打印</button>
+    </div>
+  </section>
+
+  <!-- ===== 修改页 ===== -->
+  <section class="view" id="viewEdit">
+    <!-- 列表子视图 -->
+    <div id="editListWrap">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>选择要修改的款式</h2>
+        </div>
+        <div id="editList"></div>
+        <div class="empty" id="eEmpty" hidden>
+          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 12 22 2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
+          <h3>暂无款式</h3>
+          <p>先去「录入」页添加款式。</p>
+        </div>
+      </div>
+    </div>
+    <!-- 编辑表单子视图 -->
+    <div id="editFormWrap" hidden>
+      <div class="back-bar no-print">
+        <button type="button" class="btn ghost" id="editBack">返回列表</button>
+        <h2 id="editTitle">修改款式</h2>
+      </div>
+      <div class="panel">
+        <form id="editForm" novalidate>
+          <div class="field">
+            <label for="mStyle">款号 <span class="req">*</span></label>
+            <input id="mStyle" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>码数及数量 <span class="req">*</span>（总件数自动计算）</label>
+            <div class="size-rows" id="mSizeRows"></div>
+            <button type="button" class="size-add" data-add-row="mSizeRows">+ 添加码数</button>
+            <div class="total-line"><span>总件数（自动计算）</span><b id="mTotal">0 件</b></div>
+          </div>
+          <div class="field">
+            <label for="mPrice">单价（元）</label>
+            <input id="mPrice" type="number" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>图片（仅详情/扫码查看，打印不显示）</label>
+            <div class="img-upload" id="mImgDrop" role="button" tabindex="0" aria-label="上传服装图片">
+              <input type="file" id="mImg" accept="image/*" hidden>
+              <div class="img-placeholder" id="mImgPh">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L7 22"/></svg>
+                <span>点击上传服装图片（自动压缩）</span>
+              </div>
+              <img id="mImgPrev" alt="图片预览" hidden>
+              <button type="button" class="img-clear" id="mImgClear" title="移除图片" hidden>×</button>
+            </div>
+          </div>
+          <button type="submit" class="btn primary">保存修改</button>
+          <div style="height:10px;"></div>
+          <button type="button" class="btn danger-ghost" id="mDelete">删除此款式</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- 扫码打开的详情页（全屏，无导航） -->
+  <section class="view" id="viewShow">
+    <div class="show-wrap">
+      <div class="show-brand">织女</div>
+      <h1 class="show-style" id="showStyle"></h1>
+      <div class="show-card">
+        <div class="show-row"><span class="k">码数</span><span class="v" id="showSizes"></span></div>
+        <div class="show-row"><span class="k">总件数</span><span class="v" id="showTotal"></span></div>
+        <div class="show-row price"><span class="k">单价</span><span class="v" id="showPrice"></span></div>
+      </div>
+      <p class="show-foot">扫码查看 · 织女服装</p>
+    </div>
+  </section>
+
+</div><!-- /phone -->
+
+<!-- ===== 打印预览（打印时仅显示此区域） ===== -->
+<section id="printPreview">
+  <div class="pv-toolbar no-print">
+    <div>
+      <h3>打印预览 · 已选 <b id="pvCount">0</b> 款</h3>
+      <div class="hint">二维码自动适配标签尺寸，打印不含图片；点击标签可放大扫码，扫码可查看全部数据（含图片见详情）。</div>
+    </div>
+    <button type="button" class="btn" id="pvClose">收起预览</button>
+  </div>
+  <div class="pv-stage">
+    <div class="print-grid" id="pvGrid"></div>
+  </div>
+</section>
+
+<!-- ===== 详情/扫码效果弹层 ===== -->
+<div class="modal-mask" id="detailMask">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="dTitle">款式详情</h3>
+      <button type="button" class="modal-close" id="dClose" aria-label="关闭">×</button>
+    </div>
+    <div class="detail-qr-wrap" id="dQrWrap">
+      <div class="detail-qr" id="dQrBox"></div>
+      <div class="detail-qr-note">用微信「扫一扫」扫描上方二维码，即可查看款式数据（图片见下方）</div>
+    </div>
+    <img class="detail-img" id="dImg" alt="款式图片" hidden>
+    <div class="detail-block" id="dBlock"></div>
+    <div class="qr-text-block">
+      <div class="t">扫码后显示的内容（打印标签上的二维码）</div>
+      <div id="dQrText"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 底部 Tab 栏 ===== -->
+<nav class="tabbar no-print">
+  <button type="button" class="tab" data-view="entry">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span>录入</span>
+  </button>
+  <button type="button" class="tab" data-view="query">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <span>查询</span>
+  </button>
+  <button type="button" class="tab" data-view="edit">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+    <span>修改</span>
+  </button>
+</nav>
+
+<div id="toast" role="status"></div>
+
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+<script>
+/* 去除平台水印浮层 */
+(function(){
+  function killWm(){
+    document.querySelectorAll('[data-custom-element]').forEach(function(el){
+      var k=el.getAttribute('data-custom-element')||'';
+      if(k.indexOf('watermark')!==-1) el.remove();
+    });
+  }
+  function start(){ killWm();
+    new MutationObserver(killWm).observe(document.documentElement,{childList:true,subtree:true});
+    setInterval(killWm,1200);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
+
+(function(){
+'use strict';
+
+/* ===== 状态 ===== */
+var LS_ITEMS='clothing_qr_items_v1';
+var LS_SET='clothing_qr_label_v2';
+var ONLINE_BASE='https://linxinhao1998.github.io/clothing-qr/';  // 在线版网址
+var items=[];
+var labelW=60, labelH=42;   // 打印标签 宽×高 mm（紧凑竖牌，二维码左/文字右）
+var editId=null;             // 修改页正在编辑的款式 id
+var pendingImgE=null;        // 录入页图片：dataURL 或 null
+var pendingImgM=null;        // 修改页图片：null=保留原图 dataURL=替换 '__remove__'=删除
+var lastPrintedIds=[];
+var qKw='';
+var selSet=new Set();
+
+/* ===== DOM ===== */
+var $=function(s,el){return (el||document).querySelector(s);};
+var $$=function(s,el){return Array.prototype.slice.call((el||document).querySelectorAll(s));};
+var el={
+  statCount:$('#statCount'),
+  views:{entry:$('#viewEntry'),query:$('#viewQuery'),edit:$('#viewEdit'),show:$('#viewShow')},
+  appbar:$('.appbar'), tabbar:$('.tabbar'),
+  tabs:$$('.tab'),
+  entryForm:$('#entryForm'), eStyle:$('#eStyle'), eSizeRows:$('#eSizeRows'), eTotal:$('#eTotal'), ePrice:$('#ePrice'),
+  eImgDrop:$('#eImgDrop'), eImg:$('#eImg'), eImgPh:$('#eImgPh'), eImgPrev:$('#eImgPrev'), eImgClear:$('#eImgClear'),
+  qSearch:$('#qSearch'), qSelAll:$('#qSelAll'), qSelNone:$('#qSelNone'), qList:$('#qList'), qEmpty:$('#qEmpty'), qCount:$('#qCount'), qSelInfo:$('#qSelInfo'),
+  openSet:$('#openSet'), setPanel:$('#setPanel'), setHead:$('#setHead'), setW:$('#setW'), setH:$('#setH'), setSave:$('#setSave'), setReset:$('#setReset'),
+  genQr:$('#genQr'), printBtn:$('#printBtn'),
+  editListWrap:$('#editListWrap'), editFormWrap:$('#editFormWrap'), editList:$('#editList'), eEmpty:$('#eEmpty'),
+  editBack:$('#editBack'), editTitle:$('#editTitle'), editForm:$('#editForm'),
+  mStyle:$('#mStyle'), mSizeRows:$('#mSizeRows'), mTotal:$('#mTotal'), mPrice:$('#mPrice'),
+  mImgDrop:$('#mImgDrop'), mImg:$('#mImg'), mImgPh:$('#mImgPh'), mImgPrev:$('#mImgPrev'), mImgClear:$('#mImgClear'), mDelete:$('#mDelete'),
+  printPreview:$('#printPreview'), pvGrid:$('#pvGrid'), pvCount:$('#pvCount'), pvClose:$('#pvClose'),
+  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
+  toast:$('#toast')
+};
+
+/* ===== 工具函数 ===== */
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+var toastTimer=null;
+function toast(msg,isErr){
+  el.toast.textContent=msg;
+  el.toast.className='show'+(isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){el.toast.className='';},2600);
+}
+function num(v){ var n=parseFloat(v); return isFinite(n)?n:0; }
+
+/* ===== 持久化 ===== */
+function load(){
+  try{ items=JSON.parse(localStorage.getItem(LS_ITEMS)||'[]'); }catch(e){ items=[]; }
+  if(!Array.isArray(items)) items=[];
+  migrate();
+  try{
+    var st=JSON.parse(localStorage.getItem(LS_SET)||'null');
+    if(st&&st.w>=20&&st.w<=100&&st.h>=30&&st.h<=140){ labelW=st.w; labelH=st.h; }
+  }catch(e){}
+}
+function migrate(){
+  var changed=false;
+  items.forEach(function(it){
+    if(!it.sizes){
+      it.sizes=(it.size||'').split(/[,，、\s]+/).filter(Boolean).map(function(n){return {name:n,qty:0};});
+      it.legacyQty=num(it.qty);
+      delete it.qty; delete it.size;
+      changed=true;
+    }
+  });
+  if(changed){ try{ localStorage.setItem(LS_ITEMS,JSON.stringify(items)); }catch(e){} }
+}
+function save(){
+  try{ localStorage.setItem(LS_ITEMS, JSON.stringify(items)); }
+  catch(e){ toast('保存失败：本机存储空间不足，请清理数据或换用小尺寸图片', true); }
+}
+function persistSet(){
+  try{ localStorage.setItem(LS_SET, JSON.stringify({w:labelW,h:labelH})); }catch(e){}
+}
+
+/* ===== 数据辅助 ===== */
+function sumQty(sizes){ return (sizes||[]).reduce(function(s,x){return s+(parseInt(x.qty,10)||0);},0); }
+function totalOf(it){ var s=sumQty(it.sizes); return s>0?s:(it.legacyQty||0); }
+function sizeLine(it){
+  var sum=sumQty(it.sizes);
+  if(sum===0&&it.legacyQty) return (it.sizes||[]).map(function(s){return s.name;}).join('、');
+  return (it.sizes||[]).map(function(s){return s.name+'×'+s.qty;}).join('、');
+}
+function itemById(id){ for(var i=0;i<items.length;i++){ if(items[i].id===id) return items[i]; } return null; }
+
+/* ===== 二维码 ===== */
+function b64enc(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+function b64dec(str){ return JSON.parse(decodeURIComponent(escape(atob(str)))); }
+function qrText(it){
+  var data={s:it.style,sz:it.sizes,t:totalOf(it),p:num(it.price)};
+  return ONLINE_BASE+'#/show?d='+encodeURIComponent(b64enc(data));
+}
+function makeQrSvg(text){
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+  var qr=qrcode(0,'L');
+  qr.addData(text);
+  qr.make();
+  return qr.createSvgTag({cellSize:1,margin:4,scalable:true});
+}
+
+/* ===== 码数明细编辑器（录入/修改共用） ===== */
+function sizeRowHtml(name,qty){
+  return '<div class="size-row">'
+    +'<input class="size-name" placeholder="码数，如 S" value="'+esc(name||'')+'" autocomplete="off">'
+    +'<input class="size-qty" type="number" min="0" step="1" placeholder="数量" value="'+esc(qty==null?'':qty)+'" inputmode="numeric">'
+    +'<button type="button" class="size-del" title="删除该码数">×</button>'
+    +'</div>';
+}
+function totalEl(container){ return container.id==='eSizeRows'?el.eTotal:el.mTotal; }
+function updateTotal(container){
+  var t=0;
+  container.querySelectorAll('.size-row').forEach(function(r){
+    t+=parseInt(r.querySelector('.size-qty').value,10)||0;
+  });
+  totalEl(container).textContent=t+' 件';
+}
+function renderSizeRows(container,sizes){
+  var list=(sizes&&sizes.length)?sizes:[{name:'',qty:''}];
+  container.innerHTML=list.map(function(s){return sizeRowHtml(s.name,s.qty);}).join('');
+  updateTotal(container);
+}
+function readSizes(container){
+  var out=[];
+  container.querySelectorAll('.size-row').forEach(function(r){
+    var name=r.querySelector('.size-name').value.trim();
+    var q=parseInt(r.querySelector('.size-qty').value,10);
+    if(name) out.push({name:name,qty:(isFinite(q)&&q>=0)?q:0});
+  });
+  return out;
+}
+/* 全局事件：添加码数 / 删除码数 / 实时合计 */
+document.addEventListener('click',function(e){
+  var add=e.target.closest('.size-add');
+  if(add){
+    var c=$('#'+add.getAttribute('data-add-row'));
+    c.insertAdjacentHTML('beforeend',sizeRowHtml('',''));
+    updateTotal(c);
+    var last=c.lastElementChild.querySelector('.size-name');
+    if(last) last.focus();
+    return;
+  }
+  var del=e.target.closest('.size-del');
+  if(del){
+    var row=del.closest('.size-row');
+    if(row){ row.parentNode.removeChild(row); updateTotal(row.parentNode); }
+  }
+});
+document.addEventListener('input',function(e){
+  if(e.target.classList.contains('size-qty')||e.target.classList.contains('size-name')){
+    var c=e.target.closest('.size-rows');
+    if(c) updateTotal(c);
+  }
+});
+
+/* ===== 查询页渲染 ===== */
+function thumbHtml(it){
+  return it.img
+    ? '<img src="'+esc(it.img)+'" alt="">'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.5-3.5L7 22"/></svg>';
+}
+function renderQuery(){
+  var kw=qKw.trim();
+  var list=items.filter(function(it){return !kw||it.style.indexOf(kw)>-1;});
+  el.qCount.textContent='共 '+list.length+' 款';
+  el.qEmpty.hidden=items.length>0;
+  el.qList.innerHTML=list.map(function(it){
+    var legacy=(sumQty(it.sizes)===0&&it.legacyQty)
+      ?'<small style="color:#B23A26;font-size:11px;font-weight:500;"> 旧数据待补码数数量</small>':'';
+    return '<div class="q-item'+(selSet.has(it.id)?' checked':'')+'" data-id="'+esc(it.id)+'">'
+      +'<input type="checkbox" class="q-check" data-id="'+esc(it.id)+'"'+(selSet.has(it.id)?' checked':'')+'>'
+      +'<div class="q-thumb">'+thumbHtml(it)+'</div>'
+      +'<div class="q-main">'
+      +'<div class="q-style">'+esc(it.style)+legacy+'</div>'
+      +'<div class="q-sizes">'+sizeLine(it).split('、').map(function(x){return '<b>'+esc(x)+'</b>';}).join('  ')+'</div>'
+      +'<div class="q-meta">总件数 <b>'+totalOf(it)+'</b> 件 · 单价 <b>￥'+num(it.price).toFixed(2)+'</b></div>'
+      +'</div>'
+      +'<div class="q-actions"><button type="button" class="icon-btn detail" data-id="'+esc(it.id)+'">详情</button></div>'
+      +'</div>';
+  }).join('');
+  updateSelInfo();
+}
+function updateSelInfo(){ el.qSelInfo.textContent='已选 '+selSet.size+' 款'; }
+function getSelectedIds(){ return Array.from(selSet); }
+
+/* ===== 打印卡片 ===== */
+function applyLabelVars(){
+  var root=document.documentElement.style;
+  root.setProperty('--label-w',labelW);
+  root.setProperty('--label-h',labelH);
+  var q=labelW>=labelH
+    ? Math.max(15,Math.min(labelH-9,labelW*0.44))
+    : Math.max(14,Math.min(labelW-24,labelH-12,30));
+  root.setProperty('--qr-mm',q);
+}
+function renderPrintCards(ids){
+  applyLabelVars();
+  el.pvGrid.innerHTML='';
+  ids.forEach(function(id){
+    var it=itemById(id); if(!it) return;
+    var card=document.createElement('div');
+    card.className='label-card '+(labelW>=labelH?'landscape':'portrait');
+    card.setAttribute('data-id',id);
+    var showCap=Math.min(labelW,labelH)>=24;
+    card.innerHTML='<div class="qr-box">'
+      +'<div class="qr-frame">'+makeQrSvg(qrText(it))+'</div>'
+      +(showCap?'<div class="qr-caption">扫码查详情</div>':'')
+      +'</div>'
+      +'<div class="label-info">'
+      +'<div class="l-style"><span class="dot"></span>'+esc(it.style)+'</div>'
+      +'<div class="l-divider"></div>'
+      +'<div class="l-sizes">'+sizeLine(it).split('、').map(function(x){return '<span class="sz-chip">'+esc(x)+'</span>';}).join('')+'</div>'
+      +'<div class="l-row"><span>总件数</span><b>'+totalOf(it)+' 件</b></div>'
+      +'<div class="l-row price"><span>单价</span><b>￥'+num(it.price).toFixed(2)+'</b></div>'
+      +'</div>';
+    el.pvGrid.appendChild(card);
+  });
+  lastPrintedIds=ids.slice();
+  el.pvCount.textContent=ids.length;
+  el.printPreview.classList.add('open');
+  el.printPreview.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ===== 详情弹层 ===== */
+function showDetail(id){
+  var it=itemById(id); if(!it) return;
+  el.dTitle.textContent='款式详情 · '+it.style;
+  el.dQrBox.innerHTML=makeQrSvg(qrText(it));
+  if(it.img){ el.dImg.src=it.img; el.dImg.hidden=false; }
+  else { el.dImg.hidden=true; el.dImg.removeAttribute('src'); }
+  el.dBlock.innerHTML=
+    '<div class="detail-row"><span class="k">款号</span><span class="v">'+esc(it.style)+'</span></div>'
+    +'<div class="detail-row"><span class="k">码数</span><span class="v">'+sizeLine(it).split('、').map(function(x){return esc(x);}).join('　')+'</span></div>'
+    +'<div class="detail-row"><span class="k">总件数</span><span class="v">'+totalOf(it)+' 件</span></div>'
+    +'<div class="detail-row"><span class="k">单价</span><span class="v">￥'+num(it.price).toFixed(2)+'</span></div>';
+  el.dQrText.textContent=qrText(it);
+  el.detailMask.classList.add('open');
+}
+function closeDetail(){ el.detailMask.classList.remove('open'); }
+
+/* ===== 修改页 ===== */
+function renderEditList(){
+  el.editList.innerHTML=items.map(function(it){
+    return '<div class="edit-list-item" data-id="'+esc(it.id)+'">'
+      +'<div class="q-thumb">'+thumbHtml(it)+'</div>'
+      +'<div class="q-main">'
+      +'<div class="q-style">'+esc(it.style)+'</div>'
+      +'<div class="q-meta">'+it.sizes.length+' 个码数 · 总件数 '+totalOf(it)+' 件 · ￥'+num(it.price).toFixed(2)+'</div>'
+      +'</div>'
+      +'<button type="button" class="icon-btn edit-item" data-id="'+esc(it.id)+'">编辑</button>'
+      +'<button type="button" class="icon-btn del-item" data-id="'+esc(it.id)+'">删除</button>'
+      +'</div>';
+  }).join('');
+  el.eEmpty.hidden=items.length>0;
+}
+function enterEditForm(id){
+  var it=itemById(id); if(!it) return;
+  editId=id;
+  el.editTitle.textContent='修改款式 · '+it.style;
+  el.mStyle.value=it.style;
+  renderSizeRows(el.mSizeRows,it.sizes);
+  el.mPrice.value=(num(it.price)||'').toString();
+  pendingImgM=null;
+  if(it.img){ el.mImgPrev.src=it.img; el.mImgPrev.hidden=false; el.mImgPh.style.display='none'; el.mImgClear.hidden=false; }
+  else { el.mImgPrev.hidden=true; el.mImgPrev.removeAttribute('src'); el.mImgPh.style.display='flex'; el.mImgClear.hidden=true; }
+  el.editListWrap.hidden=true;
+  el.editFormWrap.hidden=false;
+  el.views.edit.scrollTop=0;
+}
+function exitEditForm(){
+  editId=null;
+  el.editFormWrap.hidden=true;
+  el.editListWrap.hidden=false;
+  renderEditList();
+}
+
+/* ===== 图片上传（通用绑定） ===== */
+function readImage(file,cb){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var MAX=480,w=img.width,h=img.height;
+      if(w>MAX||h>MAX){ var r=Math.min(MAX/w,MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+      var c=document.createElement('canvas');
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      cb(c.toDataURL('image/jpeg',0.72));
+    };
+    img.onerror=function(){ cb(null); };
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){ cb(null); };
+  reader.readAsDataURL(file);
+}
+function bindImg(o){
+  var drop=$(o.drop),file=$(o.file),ph=$(o.ph),prev=$(o.prev),clear=$(o.clear);
+  drop.addEventListener('click',function(){ file.click(); });
+  drop.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); file.click(); }
+  });
+  file.addEventListener('change',function(){
+    var f=file.files&&file.files[0]; if(!f) return;
+    if(!/^image\//.test(f.type)){ toast('请选择图片文件',true); return; }
+    readImage(f,function(data){
+      if(!data){ toast('图片读取失败，请换一张',true); return; }
+      o.set(data);
+      prev.src=data; prev.hidden=false; ph.style.display='none'; clear.hidden=false;
+    });
+    file.value='';
+  });
+  clear.addEventListener('click',function(e){
+    e.stopPropagation();
+    o.set(o.removeValue);
+    prev.hidden=true; prev.removeAttribute('src'); ph.style.display='flex'; clear.hidden=true;
+  });
+}
+
+/* ===== 视图切换 ===== */
+function switchView(name){
+  ['entry','query','edit','show'].forEach(function(v){ el.views[v].classList.toggle('active',v===name); });
+  el.tabs.forEach(function(t){ t.classList.toggle('active',t.getAttribute('data-view')===name); });
+  var isShow=(name==='show');
+  el.appbar.style.display=isShow?'none':'';
+  el.tabbar.style.display=isShow?'none':'';
+  if(isShow) renderShow();
+}
+function renderShow(){
+  var m=location.hash.match(/[?&]d=([^&]+)/);
+  if(!m) return;
+  try{ var d=b64dec(decodeURIComponent(m[1])); }catch(e){ return; }
+  el.showStyle.textContent=d.s||'';
+  el.showSizes.innerHTML=(d.sz||[]).map(function(x){return esc(x.name+'×'+x.qty);}).join('　');
+  el.showTotal.textContent=(d.t||0)+' 件';
+  el.showPrice.textContent='¥'+Number(d.p||0).toFixed(2);
+}
+function onHash(){
+  var h=location.hash.replace(/^#\/?/,'');
+  h=h.split('?')[0];
+  if(['entry','query','edit','show'].indexOf(h)===-1) h='query';
+  switchView(h);
+}
+
+/* ===== 表单提交 ===== */
+function submitEntry(ev){
+  ev.preventDefault();
+  var style=el.eStyle.value.trim();
+  var sizes=readSizes(el.eSizeRows);
+  var price=num(el.ePrice.value);
+  if(!style){ toast('请填写款号',true); el.eStyle.focus(); return; }
+  if(!sizes.length){ toast('请至少添加一个码数并填写码数名称',true); return; }
+  items.push({id:uid(),style:style,sizes:sizes,price:price,img:pendingImgE||null});
+  save();
+  toast('已添加款式「'+style+'」');
+  el.entryForm.reset();
+  renderSizeRows(el.eSizeRows,[]);
+  pendingImgE=null;
+  el.eImgPrev.hidden=true; el.eImgPrev.removeAttribute('src');
+  el.eImgPh.style.display='flex'; el.eImgClear.hidden=true;
+  el.statCount.textContent=items.length+' 款';
+  renderQuery(); renderEditList();
+}
+function submitEdit(ev){
+  ev.preventDefault();
+  if(!editId) return;
+  var it=itemById(editId); if(!it) return;
+  var style=el.mStyle.value.trim();
+  var sizes=readSizes(el.mSizeRows);
+  var price=num(el.mPrice.value);
+  if(!style){ toast('请填写款号',true); el.mStyle.focus(); return; }
+  if(!sizes.length){ toast('请至少保留一个码数',true); return; }
+  it.style=style; it.sizes=sizes; it.price=price;
+  it.legacyQty=0;
+  if(pendingImgM==='__remove__') it.img=null;
+  else if(pendingImgM) it.img=pendingImgM;
+  save();
+  toast('已保存修改');
+  el.statCount.textContent=items.length+' 款';
+  renderQuery(); renderEditList();
+  exitEditForm();
+}
+
+/* ===== 事件绑定 ===== */
+el.entryForm.addEventListener('submit',submitEntry);
+el.editForm.addEventListener('submit',submitEdit);
+el.editBack.addEventListener('click',exitEditForm);
+
+bindImg({drop:'#eImgDrop',file:'#eImg',ph:'#eImgPh',prev:'#eImgPrev',clear:'#eImgClear',set:function(v){pendingImgE=v;},removeValue:null});
+bindImg({drop:'#mImgDrop',file:'#mImg',ph:'#mImgPh',prev:'#mImgPrev',clear:'#mImgClear',set:function(v){pendingImgM=v;},removeValue:'__remove__'});
+
+/* 查询页 */
+el.qSearch.addEventListener('input',function(){ qKw=el.qSearch.value; renderQuery(); });
+el.qSelAll.addEventListener('click',function(){
+  var kw=qKw.trim();
+  items.forEach(function(it){ if(!kw||it.style.indexOf(kw)>-1) selSet.add(it.id); });
+  renderQuery();
+});
+el.qSelNone.addEventListener('click',function(){ selSet.clear(); renderQuery(); });
+el.qList.addEventListener('change',function(e){
+  if(e.target.classList.contains('q-check')){
+    var id=e.target.getAttribute('data-id');
+    if(e.target.checked){ selSet.add(id); } else { selSet.delete(id); }
+    e.target.closest('.q-item').classList.toggle('checked',e.target.checked);
+    updateSelInfo();
+  }
+});
+el.qList.addEventListener('click',function(e){
+  var btn=e.target.closest('.icon-btn');
+  if(btn&&btn.classList.contains('detail')) showDetail(btn.getAttribute('data-id'));
+});
+
+/* 修改页列表 */
+el.editList.addEventListener('click',function(e){
+  var btn=e.target.closest('.icon-btn');
+  if(!btn) return;
+  var id=btn.getAttribute('data-id');
+  if(btn.classList.contains('edit-item')){
+    enterEditForm(id);
+  } else if(btn.classList.contains('del-item')){
+    var it=itemById(id);
+    if(!confirm('确定删除款式「'+(it?it.style:'')+'」吗？')) return;
+    items=items.filter(function(x){return x.id!==id;});
+    selSet.delete(id);
+    save();
+    toast('已删除');
+    el.statCount.textContent=items.length+' 款';
+    renderQuery(); renderEditList();
+    if(lastPrintedIds.indexOf(id)>-1) renderPrintCards(lastPrintedIds.filter(function(x){return x!==id;}));
+  }
+});
+el.mDelete.addEventListener('click',function(){
+  if(!editId) return;
+  var it=itemById(editId);
+  if(!confirm('确定删除款式「'+(it?it.style:'')+'」吗？')) return;
+  items=items.filter(function(x){return x.id!==editId;});
+  selSet.delete(editId);
+  save();
+  toast('已删除');
+  el.statCount.textContent=items.length+' 款';
+  renderQuery(); renderEditList();
+  exitEditForm();
+  if(lastPrintedIds.indexOf(editId)>-1) renderPrintCards(lastPrintedIds.filter(function(x){return x!==editId;}));
+});
+
+/* 打印设置 */
+el.setHead.addEventListener('click',function(){ el.setPanel.classList.toggle('open'); });
+el.openSet.addEventListener('click',function(){ el.setPanel.classList.toggle('open'); });
+el.setSave.addEventListener('click',function(){
+  var w=parseInt(el.setW.value,10),h=parseInt(el.setH.value,10);
+  if(!(w>=20&&w<=100)){ toast('标签宽需在 20–100mm 之间',true); return; }
+  if(!(h>=30&&h<=140)){ toast('标签高需在 30–140mm 之间',true); return; }
+  labelW=w; labelH=h;
+  persistSet();
+  if(lastPrintedIds.length) renderPrintCards(lastPrintedIds);
+  el.setPanel.classList.remove('open');
+  toast('标签尺寸已设为 '+w+'×'+h+'mm');
+});
+el.setReset.addEventListener('click',function(){
+  labelW=60; labelH=42;
+  el.setW.value='60'; el.setH.value='42';
+  persistSet();
+  if(lastPrintedIds.length) renderPrintCards(lastPrintedIds);
+  toast('已恢复默认 60×42mm');
+});
+
+/* 生成与打印 */
+el.genQr.addEventListener('click',function(){
+  var sel=getSelectedIds();
+  if(!sel.length){ toast('请先勾选要生成的款式',true); switchView('query'); return; }
+  renderPrintCards(sel);
+  toast('已生成 '+sel.length+' 个二维码');
+});
+el.printBtn.addEventListener('click',function(){
+  var sel=getSelectedIds();
+  if(!sel.length){ toast('请先勾选要打印的款式',true); switchView('query'); return; }
+  renderPrintCards(sel);
+  setTimeout(function(){ window.print(); },80);
+});
+el.pvClose.addEventListener('click',function(){
+  el.printPreview.classList.remove('open');
+});
+el.pvGrid.addEventListener('click',function(e){
+  var card=e.target.closest('.label-card');
+  if(card) showDetail(card.getAttribute('data-id'));
+});
+
+/* 详情弹层 */
+el.dClose.addEventListener('click',closeDetail);
+el.detailMask.addEventListener('click',function(e){ if(e.target===el.detailMask) closeDetail(); });
+
+/* Tab */
+el.tabs.forEach(function(t){
+  t.addEventListener('click',function(){ location.hash='/'+t.getAttribute('data-view'); });
+});
+window.addEventListener('hashchange',onHash);
+
+/* ===== 初始化 ===== */
+load();
+/* 关键：二维码库默认编码会截断中文（c & 0xff），必须显式启用 UTF-8，否则扫码乱码 */
+qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+applyLabelVars();
+el.setW.value=String(labelW);
+el.setH.value=String(labelH);
+renderSizeRows(el.eSizeRows,[]);
+renderQuery();
+renderEditList();
+el.statCount.textContent=items.length+' 款';
+if(['entry','query','edit'].indexOf(location.hash.replace(/^#\/?/,''))===-1){
+  history.replaceState(null,'','#/query');
+}
+onHash();
+})();
+
+</script>
+</body>
+</html>

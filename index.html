@@ -3429,7 +3429,8 @@ renderSizeRows(el.eSizeRows,[]);
 renderQuery();
 renderEditList();
 el.statCount.textContent=items.length+' 款';
-if(['entry','query','edit'].indexOf(location.hash.replace(/^#\/?/,''))===-1){
+var initPath=location.hash.replace(/^#\/?/,'').split('?')[0];
+if(['entry','query','edit','show'].indexOf(initPath)===-1){
   history.replaceState(null,'','#/query');
 }
 onHash();

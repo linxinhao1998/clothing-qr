@@ -573,10 +573,6 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
     </div>
     <img class="detail-img" id="dImg" alt="款式图片" hidden>
     <div class="detail-block" id="dBlock"></div>
-    <div class="qr-text-block">
-      <div class="t">扫码后显示的内容（打印标签上的二维码）</div>
-      <div id="dQrText"></div>
-    </div>
   </div>
 </div>
 
@@ -3157,7 +3153,6 @@ function showDetail(id){
     +'<div class="detail-row"><span class="k">码数</span><span class="v">'+sizeLine(it).split('、').map(function(x){return esc(x);}).join('　')+'</span></div>'
     +'<div class="detail-row"><span class="k">总件数</span><span class="v">'+totalOf(it)+' 件</span></div>'
     +'<div class="detail-row"><span class="k">单价</span><span class="v">￥'+num(it.price).toFixed(2)+'</span></div>';
-  el.dQrText.textContent=qrText(it);
   el.detailMask.classList.add('open');
 }
 function closeDetail(){ el.detailMask.classList.remove('open'); }

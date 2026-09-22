@@ -449,8 +449,13 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
               <input id="setH" type="number" min="30" max="140" step="5" inputmode="numeric">
             </div>
           </div>
+          <div class="field">
+            <label for="ghToken">GitHub Token（多设备同步用，可选）</label>
+            <input id="ghToken" type="password" placeholder="粘贴 token 后点应用">
+            <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">填入后，录入/修改会自动同步到云端，其他设备扫码可见。</div>
+          </div>
           <div class="set-actions">
-            <button type="button" class="btn dark" id="setSave">应用尺寸</button>
+            <button type="button" class="btn dark" id="setSave">应用尺寸 / 保存 Token</button>
             <button type="button" class="btn ghost" id="setReset">恢复默认 60×40</button>
           </div>
         </div>
@@ -2937,7 +2942,7 @@ var el={
   entryForm:$('#entryForm'), eStyle:$('#eStyle'), eSizeRows:$('#eSizeRows'), eTotal:$('#eTotal'), ePrice:$('#ePrice'),
   eImgDrop:$('#eImgDrop'), eImg:$('#eImg'), eImgPh:$('#eImgPh'), eImgPrev:$('#eImgPrev'), eImgClear:$('#eImgClear'),
   qSearch:$('#qSearch'), qSelAll:$('#qSelAll'), qSelNone:$('#qSelNone'), qList:$('#qList'), qEmpty:$('#qEmpty'), qCount:$('#qCount'), qSelInfo:$('#qSelInfo'),
-  openSet:$('#openSet'), setPanel:$('#setPanel'), setHead:$('#setHead'), setW:$('#setW'), setH:$('#setH'), setSave:$('#setSave'), setReset:$('#setReset'),
+  openSet:$('#openSet'), setPanel:$('#setPanel'), setHead:$('#setHead'), setW:$('#setW'), setH:$('#setH'), setSave:$('#setSave'), setReset:$('#setReset'), ghToken:$('#ghToken'),
   genQr:$('#genQr'), printBtn:$('#printBtn'),
   editListWrap:$('#editListWrap'), editFormWrap:$('#editFormWrap'), editList:$('#editList'), eEmpty:$('#eEmpty'),
   editBack:$('#editBack'), editTitle:$('#editTitle'), editForm:$('#editForm'),
@@ -2973,6 +2978,15 @@ function load(){
     var st=JSON.parse(localStorage.getItem(LS_SET)||'null');
     if(st&&st.w>=20&&st.w<=100&&st.h>=30&&st.h<=140){ labelW=st.w; labelH=st.h; }
   }catch(e){}
+  // 从云端 data.json 拉取共享数据
+  fetch('data.json?_='+Date.now()).then(function(r){return r.json();}).then(function(data){
+    if(data&&Array.isArray(data.items)&&data.items.length){
+      items=data.items;
+      try{ localStorage.setItem(LS_ITEMS,JSON.stringify(items)); }catch(e){}
+      renderQuery(); renderEditList();
+      el.statCount.textContent=items.length+' 款';
+    }
+  }).catch(function(){});
 }
 function migrate(){
   var changed=false;
@@ -2989,6 +3003,7 @@ function migrate(){
 function save(){
   try{ localStorage.setItem(LS_ITEMS, JSON.stringify(items)); }
   catch(e){ toast('保存失败：本机存储空间不足，请清理数据或换用小尺寸图片', true); }
+  pushToCloud();
 }
 function persistSet(){
   try{ localStorage.setItem(LS_SET, JSON.stringify({w:labelW,h:labelH})); }catch(e){}
@@ -3007,9 +3022,26 @@ function itemById(id){ for(var i=0;i<items.length;i++){ if(items[i].id===id) ret
 /* ===== 二维码 ===== */
 function b64enc(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function b64dec(str){ return JSON.parse(decodeURIComponent(escape(atob(str)))); }
+var GH_REPO='linxinhao1998/clothing-qr';
+var GH_TOKEN=localStorage.getItem('clothing_gh_token')||'';
 function qrText(it){
-  var data={s:it.style,sz:it.sizes,t:totalOf(it),p:num(it.price)};
-  return ONLINE_BASE+'#/show?d='+encodeURIComponent(b64enc(data));
+  return ONLINE_BASE+'#/show?s='+encodeURIComponent(it.style);
+}
+function b64utf(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+function pushToCloud(){
+  if(!GH_TOKEN) return;
+  var content=b64utf({items:items});
+  fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.json',{headers:{Authorization:'token '+GH_TOKEN}})
+    .then(function(r){return r.ok?r.json():{};})
+    .then(function(cur){
+      return fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.json',{
+        method:'PUT',
+        headers:{Authorization:'token '+GH_TOKEN,'Accept':'application/vnd.github+json'},
+        body:JSON.stringify({message:'update items',content:content,sha:cur&&cur.sha})
+      });
+    })
+    .then(function(r){ if(r.ok) toast('已同步到云端'); })
+    .catch(function(){});
 }
 function makeQrSvg(text){
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
@@ -3244,14 +3276,25 @@ function switchView(name){
   el.tabbar.style.display=isShow?'none':'';
   if(isShow) renderShow();
 }
-function renderShow(){
-  var m=location.hash.match(/[?&]d=([^&]+)/);
-  if(!m) return;
-  try{ var d=b64dec(decodeURIComponent(m[1])); }catch(e){ return; }
+function fillShow(d){
   el.showStyle.textContent=d.s||'';
   el.showSizes.innerHTML=(d.sz||[]).map(function(x){return esc(x.name+'×'+x.qty);}).join('　');
   el.showTotal.textContent=(d.t||0)+' 件';
   el.showPrice.textContent='¥'+Number(d.p||0).toFixed(2);
+}
+function renderShow(){
+  var dm=location.hash.match(/[?&]d=([^&]+)/);
+  if(dm){ try{ fillShow(b64dec(decodeURIComponent(dm[1]))); }catch(e){} return; }
+  var sm=location.hash.match(/[?&]s=([^&]+)/);
+  if(!sm) return;
+  var style=decodeURIComponent(sm[1]);
+  el.showStyle.textContent=style; el.showSizes.textContent='加载中…';
+  fetch('data.json?_='+Date.now()).then(function(r){return r.json();}).then(function(data){
+    var list=(data&&data.items)||[], it=null;
+    for(var i=0;i<list.length;i++){ if(list[i].style===style){ it=list[i]; break; } }
+    if(!it){ el.showSizes.textContent='未找到该款号'; el.showTotal.textContent=''; el.showPrice.textContent=''; return; }
+    fillShow({s:it.style,sz:it.sizes,t:totalOf(it),p:num(it.price)});
+  }).catch(function(){ el.showSizes.textContent='数据加载失败'; });
 }
 function onHash(){
   var h=location.hash.replace(/^#\/?/,'');
@@ -3365,6 +3408,8 @@ el.mDelete.addEventListener('click',function(){
 el.setHead.addEventListener('click',function(){ el.setPanel.classList.toggle('open'); });
 el.openSet.addEventListener('click',function(){ el.setPanel.classList.toggle('open'); });
 el.setSave.addEventListener('click',function(){
+  var tk=(el.ghToken.value||'').trim();
+  if(tk){ localStorage.setItem('clothing_gh_token',tk); GH_TOKEN=tk; toast('Token 已保存'); }
   var w=parseInt(el.setW.value,10),h=parseInt(el.setH.value,10);
   if(!(w>=20&&w<=100)){ toast('标签宽需在 20–100mm 之间',true); return; }
   if(!(h>=30&&h<=140)){ toast('标签高需在 30–140mm 之间',true); return; }
@@ -3420,6 +3465,7 @@ qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 applyLabelVars();
 el.setW.value=String(labelW);
 el.setH.value=String(labelH);
+el.ghToken.value=GH_TOKEN;
 renderSizeRows(el.eSizeRows,[]);
 renderQuery();
 renderEditList();

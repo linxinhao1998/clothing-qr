@@ -3659,13 +3659,16 @@ function exportPdf(){
     var jsP=new window.jspdf.jsPDF({unit:'mm',format:[paperW,paperH]});
     var availW=paperW-mL-mR, y= mT, idx=0;
     var list=Array.prototype.slice.call(cards);
+    var maxH=paperH-mT-mB;
     var step=function(){
       if(idx>=list.length){ jsP.save('织女吊牌标签.pdf'); toast('PDF 已导出'); return; }
       html2canvas(list[idx],{scale:2,backgroundColor:'#fff'}).then(function(cv){
         var img=cv.toDataURL('image/png');
-        var cardH=availW*cv.height/cv.width;
+        var cardW=availW, cardH=availW*cv.height/cv.width;
+        if(cardH>maxH){ cardH=maxH; cardW=cardH*cv.width/cv.height; }
         if(y+cardH>paperH-mB){ jsP.addPage([paperW,paperH]); y=mT; }
-        jsP.addImage(img,'PNG',mL,y,availW,cardH);
+        var x=mL+(availW-cardW)/2;
+        jsP.addImage(img,'PNG',x,y,cardW,cardH);
         y+=cardH+3;
         idx++; step();
       }).catch(function(){ toast('生成第 '+(idx+1)+' 张失败',true); });

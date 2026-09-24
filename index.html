@@ -3121,6 +3121,24 @@ function persistSet(){
   try{ localStorage.setItem(LS_SET, JSON.stringify({w:labelW,h:labelH,pw:paperW,ph:paperH,mt:mT,mb:mB,ml:mL,mr:mR})); }catch(e){}
 }
 
+/* ===== 云端防缓存拉取：避免手机缓存旧的空数据 ===== */
+function fetchCloud(){
+  if(location.protocol==='file:') return;
+  fetch(ONLINE_BASE+'data.js?_='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw 0; return r.text(); })
+    .then(function(txt){
+      try{ (new Function(txt))(); }catch(e){ return; }
+      var d=window.DATA;
+      if(!d||!Array.isArray(d.items)||!d.items.length) return;
+      items=d.items;
+      try{ localStorage.setItem(LS_ITEMS,JSON.stringify(items)); }catch(e){}
+      renderQuery(); renderEditList();
+      el.statCount.textContent=items.length+' 款';
+      var h=location.hash.replace(/^#\/?/,'').split('?')[0];
+      if(h==='show') renderShow();
+    }).catch(function(){});
+}
+
 /* ===== 数据辅助 ===== */
 function sumQty(sizes){ return (sizes||[]).reduce(function(s,x){return s+(parseInt(x.qty,10)||0);},0); }
 function totalOf(it){ var s=sumQty(it.sizes); return s>0?s:(it.legacyQty||0); }
@@ -3731,6 +3749,7 @@ if(['entry','query','edit','show'].indexOf(initPath)===-1){
   history.replaceState(null,'','#/query');
 }
 onHash();
+fetchCloud();
 })();
 
 </script>

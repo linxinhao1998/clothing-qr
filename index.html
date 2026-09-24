@@ -3420,6 +3420,9 @@ function switchView(name){
   el.appbar.style.display=(isShow||isLogin)?'none':'';
   el.tabbar.style.display=(isShow||isLogin)?'none':'';
   if(isShow) renderShow();
+  if(!isShow&&!isLogin&&location.hash!=='#'+name){
+    try{ location.hash='#'+name; }catch(e){}
+  }
 }
 function doLogin(){
   var u=el.loginUser.value.trim(), pw=el.loginPass.value;
@@ -3765,7 +3768,11 @@ el.detailMask.addEventListener('click',function(e){ if(e.target===el.detailMask)
 
 /* Tab */
 el.tabs.forEach(function(t){
-  t.addEventListener('click',function(){ location.hash='/'+t.getAttribute('data-view'); });
+  t.addEventListener('click',function(){
+    var v=t.getAttribute('data-view');
+    switchView(v);
+    if(location.hash!=='/'+v){ try{ location.hash='/'+v; }catch(e){} }
+  });
 });
 window.addEventListener('hashchange',onHash);
 

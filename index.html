@@ -386,6 +386,11 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
   .search-bar input{flex:1 1 100%;}
   .search-bar .btn{flex:1;text-align:center;}
 }
+
+/* ===== 云端同步状态行（折叠） ===== */
+.sync-status{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink);padding:10px 12px;background:#F4F2EB;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;cursor:pointer;user-select:none;}
+.sync-status .dot{width:8px;height:8px;border-radius:50%;background:#C9A227;flex:none;}
+.sync-cfg{border:1px solid var(--line);border-radius:8px;padding:12px 12px 8px;margin-bottom:10px;background:#FCFCFA;}
 </style>
 <script src="data.js"></script>
 </head>
@@ -530,13 +535,17 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
               <input id="setMR" type="number" min="0" max="80" step="1" inputmode="numeric">
             </div>
           </div>
-          <div class="field">
-            <label for="ghToken">同步密钥（管理员设备配置一次）</label>
-            <input id="ghToken" type="password" placeholder="粘贴同步密钥（扫码设备无需此设置）">
-            <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">配置一次后，录入/修改自动同步云端，任何设备扫码直接看到最新数据。</div>
-          </div>
-          <div class="set-actions" style="margin-top:8px;">
-            <button type="button" class="btn ghost" id="syncNow">立即同步到云端</button>
+          <div class="sync-status" id="syncStatus"><span class="dot"></span>云端同步：检查中…</div>
+          <div class="sync-cfg" id="syncCfg" hidden>
+            <div class="field">
+              <label for="ghToken">同步密钥</label>
+              <input id="ghToken" type="password" placeholder="粘贴同步密钥">
+              <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">配置一次后自动同步，所有设备扫码可见同一份数据。</div>
+            </div>
+            <div class="set-actions" style="margin-top:8px;">
+              <button type="button" class="btn dark" id="setSave">应用设置 / 保存密钥</button>
+              <button type="button" class="btn ghost" id="syncNow">立即同步到云端</button>
+            </div>
           </div>
           <div class="set-actions">
             <button type="button" class="btn dark" id="setSave">应用设置 / 保存 Token</button>
@@ -3042,7 +3051,7 @@ var el={
   mStyle:$('#mStyle'), mSizeRows:$('#mSizeRows'), mTotal:$('#mTotal'), mPrice:$('#mPrice'),
   mImgDrop:$('#mImgDrop'), mImg:$('#mImg'), mImgPh:$('#mImgPh'), mImgPrev:$('#mImgPrev'), mImgClear:$('#mImgClear'), mDelete:$('#mDelete'),
   printPreview:$('#printPreview'), pvGrid:$('#pvGrid'), pvCount:$('#pvCount'), pvClose:$('#pvClose'),
-  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), exportData:$('#exportData'), importDataBtn:$('#importDataBtn'), importDataFile:$('#importDataFile'), syncNow:$('#syncNow'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
+  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), exportData:$('#exportData'), importDataBtn:$('#importDataBtn'), importDataFile:$('#importDataFile'), syncNow:$('#syncNow'), syncStatus:$('#syncStatus'), syncCfg:$('#syncCfg'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
   toast:$('#toast')
 };
 
@@ -3138,7 +3147,7 @@ function pushToCloud(){
       });
     })
     .then(function(r){
-      if(r.ok){ toast('已同步到云端'); return; }
+      if(r.ok){ toast('已同步到云端'); refreshSyncStatus(); return; }
       r.json().then(function(j){
         toast((j&&j.message)?('同步失败：'+j.message):'同步失败', true);
       }).catch(function(){ toast('同步失败', true); });
@@ -3530,6 +3539,20 @@ el.mDelete.addEventListener('click',function(){
 /* 打印设置 */
 el.setHead.addEventListener('click',function(){ el.setPanel.classList.toggle('open'); });
 el.openSet.addEventListener('click',function(){ el.setPanel.classList.toggle('open'); });
+function refreshSyncStatus(){
+  var has=!!GH_TOKEN;
+  var elDot=el.syncStatus.querySelector('.dot');
+  elDot.style.background=has?'#2FA34D':'#C9A227';
+  el.syncStatus.innerHTML='<span class="dot"></span>云端同步：'+(has?'已开启（点击重新配置）':'未配置（点击配置）');
+}
+el.syncStatus.addEventListener('click',function(){
+  el.syncCfg.hidden=!el.syncCfg.hidden;
+  if(!el.syncCfg.hidden&&!el.syncCfg._init){
+    el.syncCfg._init=true;
+    el.setPanel.classList.add('open');
+  }
+});
+refreshSyncStatus();
 el.setSave.addEventListener('click',function(){
   var tk=(el.ghToken.value||'').trim();
   if(tk){ localStorage.setItem('clothing_gh_token',tk); GH_TOKEN=tk; toast('Token 已保存'); }
@@ -3547,6 +3570,7 @@ el.setSave.addEventListener('click',function(){
   if(mr>=0&&mr<=80) mR=mr;
   persistSet();
   if(lastPrintedIds.length) renderPrintCards(lastPrintedIds);
+  refreshSyncStatus();
   el.setPanel.classList.remove('open');
   toast('已应用标签 '+w+'×'+h+'mm · 纸张 '+paperW+'×'+paperH+'mm');
 });

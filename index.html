@@ -3643,6 +3643,37 @@ function applyPage(){
   ps.textContent='@page{size:'+paperW+'mm '+paperH+'mm;margin:'+mT+'mm '+mR+'mm '+mB+'mm '+mL+'mm;}';
 }
 
+/* 导出 PDF：卡片先做"防溢出适配"（字号过大导致文字被裁时自动缩小），再渲染 */
+var _fitHolder=null;
+function _fitHolderEl(){
+  if(!_fitHolder){
+    _fitHolder=document.createElement('div');
+    _fitHolder.style.cssText='position:fixed;left:-10000px;top:0;pointer-events:none;';
+    document.body.appendChild(_fitHolder);
+  }
+  return _fitHolder;
+}
+function snapCard(card){
+  var h=_fitHolderEl(); h.innerHTML='';
+  var c=card.cloneNode(true); h.appendChild(c);
+  var tries=0;
+  while(tries<40){
+    var over=0;
+    var checks=c.querySelectorAll('.l-row,.l-style');
+    for(var i=0;i<checks.length;i++){
+      if(checks[i].scrollWidth>checks[i].clientWidth+1.5){ over=1; break; }
+    }
+    if(!over) break;
+    var els=c.querySelectorAll('*');
+    for(var j=0;j<els.length;j++){
+      var f=parseFloat(getComputedStyle(els[j]).fontSize);
+      if(f>2) els[j].style.fontSize=(f*0.95)+'px';
+    }
+    tries++;
+  }
+  return html2canvas(c,{scale:2,backgroundColor:'#fff'});
+}
+
 /* 导出 PDF */
 function loadJs(url){
   return new Promise(function(res,rej){
@@ -3662,7 +3693,7 @@ function exportPdf(){
     var maxH=paperH-mT-mB;
     var step=function(){
       if(idx>=list.length){ jsP.save('织女吊牌标签.pdf'); toast('PDF 已导出'); return; }
-      html2canvas(list[idx],{scale:2,backgroundColor:'#fff'}).then(function(cv){
+      snapCard(list[idx]).then(function(cv){
         var img=cv.toDataURL('image/png');
         var cardW=availW, cardH=availW*cv.height/cv.width;
         if(cardH>maxH){ cardH=maxH; cardW=cardH*cv.width/cv.height; }

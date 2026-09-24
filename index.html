@@ -341,8 +341,8 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
   #printPreview{display:block !important;max-width:none;margin:0;padding:0;}
   .pv-toolbar{display:none !important;}
   .pv-stage{background:#fff;border:none;padding:0;overflow:visible;border-radius:0;}
-  .print-grid{padding:0;}
-  .label-card{box-shadow:none;border-radius:0;margin:0;}
+  .print-grid{gap:4mm;}
+  .label-card{box-shadow:none;border-radius:0;}
 }
 
 /* ===== 扫码详情页 ===== */
@@ -3618,10 +3618,6 @@ el.genQr.addEventListener('click',function(){
 el.printBtn.addEventListener('click',function(){
   var sel=getSelectedIds();
   if(!sel.length){ toast('请先勾选要打印的款式',true); switchView('query'); return; }
-  if(labelW>paperW-mL-mR+0.4 || labelH>paperH-mT-mB+0.4){
-    toast('纸张或边距太小，卡片放不下（需 标签'+labelW+'×'+labelH+'mm ≤ 内容区'+(paperW-mL-mR).toFixed(0)+'×'+(paperH-mT-mB).toFixed(0)+'mm）',true);
-    switchView('query'); return;
-  }
   renderPrintCards(sel);
   applyPage();
   setTimeout(function(){ window.print(); },80);
@@ -3644,9 +3640,7 @@ el.logoutBtn.addEventListener('click',function(){
 function applyPage(){
   var ps=document.getElementById('pgStyle');
   if(!ps){ ps=document.createElement('style'); ps.id='pgStyle'; document.head.appendChild(ps); }
-  var gap=3, avail=paperW-mL-mR, cols=Math.max(1,Math.floor((avail+gap)/(labelW+gap)));
-  ps.textContent='@page{size:'+paperW+'mm '+paperH+'mm;margin:'+mT+'mm '+mR+'mm '+mB+'mm '+mL+'mm;}'
-    +'@media print{.print-grid{display:grid !important;grid-template-columns:repeat('+cols+',calc(var(--label-w)*var(--mmp)*1px)) !important;justify-content:center !important;gap:calc('+gap+'mm*var(--mmp)*1px) !important;}}';
+  ps.textContent='@page{size:'+paperW+'mm '+paperH+'mm;margin:'+mT+'mm '+mR+'mm '+mB+'mm '+mL+'mm;}';
 }
 
 /* 导出 PDF */

@@ -358,12 +358,61 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
 .show-row .v{color:var(--ink);font-weight:800;font-size:18px;text-align:right;line-height:1.5;word-break:break-all;}
 .show-row.price .v{color:var(--accent-dark);}
 .show-foot{text-align:center;color:#9aa0a8;font-size:12px;margin-top:24px;}
+
+/* ===== 登录页 ===== */
+#viewLogin{display:none;min-height:100%;background:linear-gradient(160deg,#2C343D 0%,#3A4450 60%,#4A3A30 130%);}
+#viewLogin.active{display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-wrap{width:100%;max-width:340px;}
+.login-card{background:#fff;border-radius:16px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;box-shadow:0 12px 32px rgba(0,0,0,.25);}
+.login-card h1{font-size:22px;font-weight:800;margin:12px 0 2px;color:var(--ink);}
+.login-sub{font-size:12.5px;color:var(--muted);margin:0 0 20px;}
+.login-card input{width:100%;height:44px;padding:0 12px;border:1px solid var(--line-strong);border-radius:10px;margin-bottom:12px;font-size:14px;outline:none;background:#fff;}
+.login-card input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(178,58,38,.12);}
+.login-btn{width:100%;height:44px;font-size:15px;margin-top:4px;}
+.login-err{min-height:18px;font-size:12.5px;color:var(--accent);margin-top:8px;text-align:center;}
+.appbar-btn{margin-left:10px;height:28px;padding:0 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:12px;flex:none;cursor:pointer;}
+.appbar-btn:hover{background:rgba(255,255,255,.16);}
+
+/* ===== 扫码详情页图片 ===== */
+.show-img{width:100%;max-width:320px;margin:0 auto 16px;display:block;border-radius:12px;border:1px solid var(--line);object-fit:cover;max-height:320px;}
+
+/* ===== 打印设置分区 ===== */
+.set-sec{font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 8px;padding-top:10px;border-top:1px dashed var(--line);}
+.set-grid+.set-grid{margin-top:10px;}
+
+/* ===== 搜索栏手机适配（全选/全不选按钮） ===== */
+@media (max-width:420px){
+  .search-bar{flex-wrap:wrap;}
+  .search-bar input{flex:1 1 100%;}
+  .search-bar .btn{flex:1;text-align:center;}
+}
 </style>
 <script src="data.js"></script>
 </head>
 <body>
 
 <div class="phone" id="phone">
+
+  <!-- ===== 登录页 ===== -->
+  <section class="view" id="viewLogin">
+    <div class="login-wrap">
+      <div class="login-card">
+        <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14" fill="#2C343D"/>
+          <g fill="#fff">
+            <path d="M16 14h11v11H16zM31 14h4v4h-4zM38 14h10v10H38zM16 31h10v4H16zM29 31h4v4h-4zM36 31h12v4H36zM16 41h4v4h-4zM23 41h12v4H23zM38 41h10v4H38zM16 50h4v4h-4zM23 50h6v4h-6zM32 50h4v4h-4zM39 50h9v4h-9z"/>
+          </g>
+          <path d="M52 16v7h-4v-7h4zm-5 10h4v4h-4v-4zm5 7v7h-4v-7h4zm-9 3v-7h4v7h-4zm0 10v7h4v-7h-4zm9 3v7h-4v-7h4z" fill="#E0472C"/>
+        </svg>
+        <h1>织女服装</h1>
+        <p class="login-sub">二维码吊牌管理系统</p>
+        <input id="loginUser" placeholder="账号" autocomplete="username">
+        <input id="loginPass" type="password" placeholder="密码" autocomplete="current-password">
+        <button type="button" class="btn primary login-btn" id="loginBtn">登 录</button>
+        <div class="login-err" id="loginErr"></div>
+      </div>
+    </div>
+  </section>
 
   <!-- 顶栏 -->
   <header class="appbar no-print">
@@ -381,6 +430,7 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
       </div>
     </div>
     <div class="stat-chip" id="statCount">0 款</div>
+    <button type="button" class="appbar-btn" id="logoutBtn">退出</button>
   </header>
 
   <!-- ===== 录入页 ===== -->
@@ -453,14 +503,44 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
               <input id="setH" type="number" min="30" max="140" step="5" inputmode="numeric">
             </div>
           </div>
+          <div class="set-sec">页面尺寸（打印/PDF）</div>
+          <div class="set-grid">
+            <div class="set-field">
+              <label>纸张宽（mm）</label>
+              <input id="setPW" type="number" min="50" max="600" step="5" inputmode="numeric">
+            </div>
+            <div class="set-field">
+              <label>纸张高（mm）</label>
+              <input id="setPH" type="number" min="50" max="600" step="5" inputmode="numeric">
+            </div>
+            <div class="set-field">
+              <label>上边距（mm）</label>
+              <input id="setMT" type="number" min="0" max="80" step="1" inputmode="numeric">
+            </div>
+            <div class="set-field">
+              <label>下边距（mm）</label>
+              <input id="setMB" type="number" min="0" max="80" step="1" inputmode="numeric">
+            </div>
+            <div class="set-field">
+              <label>左边距（mm）</label>
+              <input id="setML" type="number" min="0" max="80" step="1" inputmode="numeric">
+            </div>
+            <div class="set-field">
+              <label>右边距（mm）</label>
+              <input id="setMR" type="number" min="0" max="80" step="1" inputmode="numeric">
+            </div>
+          </div>
           <div class="field">
             <label for="ghToken">GitHub Token（多设备同步用，可选）</label>
             <input id="ghToken" type="password" placeholder="粘贴 token 后点应用">
             <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">填入后，录入/修改会自动同步到云端，其他设备扫码可见。</div>
           </div>
           <div class="set-actions">
-            <button type="button" class="btn dark" id="setSave">应用尺寸 / 保存 Token</button>
-            <button type="button" class="btn ghost" id="setReset">恢复默认 60×40</button>
+            <button type="button" class="btn dark" id="setSave">应用设置 / 保存 Token</button>
+            <button type="button" class="btn ghost" id="setReset">恢复默认</button>
+          </div>
+          <div class="set-actions" style="margin-top:8px;">
+            <button type="button" class="btn primary" id="exportPdf">导出 PDF</button>
           </div>
         </div>
       </div>
@@ -542,6 +622,7 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
   <!-- 扫码打开的详情页（全屏，无导航） -->
   <section class="view" id="viewShow">
     <div class="show-wrap">
+      <img class="show-img" id="showImg" alt="款式图片" hidden>
       <h1 class="show-style" id="showStyle"></h1>
       <div class="show-card">
         <div class="show-row"><span class="k">码数</span><span class="v" id="showSizes"></span></div>
@@ -2926,6 +3007,8 @@ var LS_SET='clothing_qr_label_v2';
 var ONLINE_BASE='https://linxinhao1998.github.io/clothing-qr/';  // 在线版网址
 var items=[];
 var labelW=60, labelH=42;   // 打印标签 宽×高 mm（紧凑竖牌，二维码左/文字右）
+var paperW=210, paperH=297, mT=10, mB=10, mL=10, mR=10;  // 页面尺寸与四边距 mm
+var AUTH_USER='admin', AUTH_PASS='admin123';
 var editId=null;             // 修改页正在编辑的款式 id
 var pendingImgE=null;        // 录入页图片：dataURL 或 null
 var pendingImgM=null;        // 修改页图片：null=保留原图 dataURL=替换 '__remove__'=删除
@@ -2938,20 +3021,20 @@ var $=function(s,el){return (el||document).querySelector(s);};
 var $$=function(s,el){return Array.prototype.slice.call((el||document).querySelectorAll(s));};
 var el={
   statCount:$('#statCount'),
-  views:{entry:$('#viewEntry'),query:$('#viewQuery'),edit:$('#viewEdit'),show:$('#viewShow')},
+  views:{entry:$('#viewEntry'),query:$('#viewQuery'),edit:$('#viewEdit'),show:$('#viewShow'),login:$('#viewLogin')},
   appbar:$('.appbar'), tabbar:$('.tabbar'),
   tabs:$$('.tab'),
   entryForm:$('#entryForm'), eStyle:$('#eStyle'), eSizeRows:$('#eSizeRows'), eTotal:$('#eTotal'), ePrice:$('#ePrice'),
   eImgDrop:$('#eImgDrop'), eImg:$('#eImg'), eImgPh:$('#eImgPh'), eImgPrev:$('#eImgPrev'), eImgClear:$('#eImgClear'),
   qSearch:$('#qSearch'), qSelAll:$('#qSelAll'), qSelNone:$('#qSelNone'), qList:$('#qList'), qEmpty:$('#qEmpty'), qCount:$('#qCount'), qSelInfo:$('#qSelInfo'),
-  openSet:$('#openSet'), setPanel:$('#setPanel'), setHead:$('#setHead'), setW:$('#setW'), setH:$('#setH'), setSave:$('#setSave'), setReset:$('#setReset'), ghToken:$('#ghToken'),
+  openSet:$('#openSet'), setPanel:$('#setPanel'), setHead:$('#setHead'), setW:$('#setW'), setH:$('#setH'), setSave:$('#setSave'), setReset:$('#setReset'), ghToken:$('#ghToken'), setPW:$('#setPW'), setPH:$('#setPH'), setMT:$('#setMT'), setMB:$('#setMB'), setML:$('#setML'), setMR:$('#setMR'),
   genQr:$('#genQr'), printBtn:$('#printBtn'),
   editListWrap:$('#editListWrap'), editFormWrap:$('#editFormWrap'), editList:$('#editList'), eEmpty:$('#eEmpty'),
   editBack:$('#editBack'), editTitle:$('#editTitle'), editForm:$('#editForm'),
   mStyle:$('#mStyle'), mSizeRows:$('#mSizeRows'), mTotal:$('#mTotal'), mPrice:$('#mPrice'),
   mImgDrop:$('#mImgDrop'), mImg:$('#mImg'), mImgPh:$('#mImgPh'), mImgPrev:$('#mImgPrev'), mImgClear:$('#mImgClear'), mDelete:$('#mDelete'),
   printPreview:$('#printPreview'), pvGrid:$('#pvGrid'), pvCount:$('#pvCount'), pvClose:$('#pvClose'),
-  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
+  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
   toast:$('#toast')
 };
 
@@ -2979,6 +3062,12 @@ function load(){
   try{
     var st=JSON.parse(localStorage.getItem(LS_SET)||'null');
     if(st&&st.w>=20&&st.w<=100&&st.h>=30&&st.h<=140){ labelW=st.w; labelH=st.h; }
+    if(st&&st.pw>=50&&st.pw<=600) paperW=st.pw;
+    if(st&&st.ph>=50&&st.ph<=600) paperH=st.ph;
+    if(st&&st.mt>=0&&st.mt<=80) mT=st.mt;
+    if(st&&st.mb>=0&&st.mb<=80) mB=st.mb;
+    if(st&&st.ml>=0&&st.ml<=80) mL=st.ml;
+    if(st&&st.mr>=0&&st.mr<=80) mR=st.mr;
   }catch(e){}
   // 从云端 data.js 读取共享数据
   var data=(typeof window.DATA!=='undefined'&&window.DATA)||null;
@@ -3005,7 +3094,7 @@ function save(){
   pushToCloud();
 }
 function persistSet(){
-  try{ localStorage.setItem(LS_SET, JSON.stringify({w:labelW,h:labelH})); }catch(e){}
+  try{ localStorage.setItem(LS_SET, JSON.stringify({w:labelW,h:labelH,pw:paperW,ph:paperH,mt:mT,mb:mB,ml:mL,mr:mR})); }catch(e){}
 }
 
 /* ===== 数据辅助 ===== */
@@ -3268,13 +3357,27 @@ function bindImg(o){
 }
 
 /* ===== 视图切换 ===== */
+function isAuthed(){ return sessionStorage.getItem('clothing_auth')==='1'; }
 function switchView(name){
-  ['entry','query','edit','show'].forEach(function(v){ el.views[v].classList.toggle('active',v===name); });
+  if(name!=='show'&&!isAuthed()) name='login';
+  ['entry','query','edit','show','login'].forEach(function(v){ el.views[v].classList.toggle('active',v===name); });
   el.tabs.forEach(function(t){ t.classList.toggle('active',t.getAttribute('data-view')===name); });
   var isShow=(name==='show');
-  el.appbar.style.display=isShow?'none':'';
-  el.tabbar.style.display=isShow?'none':'';
+  var isLogin=(name==='login');
+  el.appbar.style.display=(isShow||isLogin)?'none':'';
+  el.tabbar.style.display=(isShow||isLogin)?'none':'';
   if(isShow) renderShow();
+}
+function doLogin(){
+  var u=el.loginUser.value.trim(), pw=el.loginPass.value;
+  if(u===AUTH_USER&&pw===AUTH_PASS){
+    sessionStorage.setItem('clothing_auth','1');
+    el.loginErr.textContent='';
+    toast('登录成功');
+    switchView('entry');
+  }else{
+    el.loginErr.textContent='账号或密码错误';
+  }
 }
 function fillShow(d){
   el.showStyle.textContent=d.s||'';
@@ -3292,7 +3395,9 @@ function renderShow(){
   var data=(typeof window.DATA!=='undefined'&&window.DATA)||null;
   var list=(data&&data.items)||[], it=null;
   for(var i=0;i<list.length;i++){ if(list[i].style===style){ it=list[i]; break; } }
-  if(!it){ el.showSizes.textContent='未找到该款号'; el.showTotal.textContent=''; el.showPrice.textContent=''; return; }
+  if(!it){ el.showSizes.textContent='未找到该款号'; el.showTotal.textContent=''; el.showPrice.textContent=''; el.showImg.hidden=true; return; }
+  if(it.img){ el.showImg.src=it.img; el.showImg.hidden=false; }
+  else { el.showImg.hidden=true; el.showImg.removeAttribute('src'); }
   fillShow({s:it.style,sz:it.sizes,t:totalOf(it),p:num(it.price)});
 }
 function onHash(){
@@ -3413,17 +3518,26 @@ el.setSave.addEventListener('click',function(){
   if(!(w>=20&&w<=100)){ toast('标签宽需在 20–100mm 之间',true); return; }
   if(!(h>=30&&h<=140)){ toast('标签高需在 30–140mm 之间',true); return; }
   labelW=w; labelH=h;
+  var pw=parseInt(el.setPW.value,10),ph=parseInt(el.setPH.value,10);
+  var mt=parseInt(el.setMT.value,10),mb=parseInt(el.setMB.value,10),ml=parseInt(el.setML.value,10),mr=parseInt(el.setMR.value,10);
+  if(pw>=50&&pw<=600) paperW=pw; else { toast('纸张宽需在 50–600mm 之间',true); return; }
+  if(ph>=50&&ph<=600) paperH=ph; else { toast('纸张高需在 50–600mm 之间',true); return; }
+  if(mt>=0&&mt<=80) mT=mt;
+  if(mb>=0&&mb<=80) mB=mb;
+  if(ml>=0&&ml<=80) mL=ml;
+  if(mr>=0&&mr<=80) mR=mr;
   persistSet();
   if(lastPrintedIds.length) renderPrintCards(lastPrintedIds);
   el.setPanel.classList.remove('open');
-  toast('标签尺寸已设为 '+w+'×'+h+'mm');
+  toast('已应用标签 '+w+'×'+h+'mm · 纸张 '+paperW+'×'+paperH+'mm');
 });
 el.setReset.addEventListener('click',function(){
-  labelW=60; labelH=42;
+  labelW=60; labelH=42; paperW=210; paperH=297; mT=10; mB=10; mL=10; mR=10;
   el.setW.value='60'; el.setH.value='42';
+  el.setPW.value='210'; el.setPH.value='297'; el.setMT.value='10'; el.setMB.value='10'; el.setML.value='10'; el.setMR.value='10';
   persistSet();
   if(lastPrintedIds.length) renderPrintCards(lastPrintedIds);
-  toast('已恢复默认 60×42mm');
+  toast('已恢复默认（A4 · 边距 10mm）');
 });
 
 /* 生成与打印 */
@@ -3437,10 +3551,70 @@ el.printBtn.addEventListener('click',function(){
   var sel=getSelectedIds();
   if(!sel.length){ toast('请先勾选要打印的款式',true); switchView('query'); return; }
   renderPrintCards(sel);
+  applyPage();
   setTimeout(function(){ window.print(); },80);
 });
 el.pvClose.addEventListener('click',function(){
   el.printPreview.classList.remove('open');
+});
+
+/* 登录 / 退出 */
+el.loginBtn.addEventListener('click',doLogin);
+el.loginPass.addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
+el.loginUser.addEventListener('keydown',function(e){ if(e.key==='Enter'){ el.loginPass.focus(); } });
+el.logoutBtn.addEventListener('click',function(){
+  sessionStorage.removeItem('clothing_auth');
+  switchView('login');
+  toast('已退出登录');
+});
+
+/* 页面尺寸应用到打印 @page */
+function applyPage(){
+  var ps=document.getElementById('pgStyle');
+  if(!ps){ ps=document.createElement('style'); ps.id='pgStyle'; document.head.appendChild(ps); }
+  ps.textContent='@page{size:'+paperW+'mm '+paperH+'mm;margin:'+mT+'mm '+mR+'mm '+mB+'mm '+mL+'mm;}';
+}
+
+/* 导出 PDF */
+function loadJs(url){
+  return new Promise(function(res,rej){
+    var s=document.createElement('script'); s.src=url; s.onload=res; s.onerror=rej; document.head.appendChild(s);
+  });
+}
+function exportPdf(){
+  var cards=el.pvGrid.querySelectorAll('.label-card');
+  if(!cards.length){ toast('请先勾选并生成二维码',true); return; }
+  var need=[];
+  if(typeof window.jspdf==='undefined') need.push(loadJs('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'));
+  if(typeof window.html2canvas==='undefined') need.push(loadJs('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'));
+  var run=function(){
+    var jsP=new window.jspdf.jsPDF({unit:'mm',format:[paperW,paperH]});
+    var availW=paperW-mL-mR, y= mT, idx=0;
+    var list=Array.prototype.slice.call(cards);
+    var step=function(){
+      if(idx>=list.length){ jsP.save('织女吊牌标签.pdf'); toast('PDF 已导出'); return; }
+      html2canvas(list[idx],{scale:2,backgroundColor:'#fff'}).then(function(cv){
+        var img=cv.toDataURL('image/png');
+        var cardH=availW*cv.height/cv.width;
+        if(y+cardH>paperH-mB){ jsP.addPage([paperW,paperH]); y=mT; }
+        jsP.addImage(img,'PNG',mL,y,availW,cardH);
+        y+=cardH+3;
+        idx++; step();
+      }).catch(function(){ toast('生成第 '+(idx+1)+' 张失败',true); });
+    };
+    step();
+  };
+  if(need.length){ toast('正在加载导出组件…');
+    Promise.all(need).then(run).catch(function(){
+      toast('导出组件加载失败，改用打印另存为PDF', true);
+      applyPage();
+      setTimeout(function(){ window.print(); },80);
+    });
+  } else run();
+}
+el.exportPdf.addEventListener('click',function(){
+  if(!el.pvGrid.querySelector('.label-card')){ toast('请先勾选并生成二维码',true); return; }
+  exportPdf();
 });
 el.pvGrid.addEventListener('click',function(e){
   var card=e.target.closest('.label-card');
@@ -3465,6 +3639,7 @@ applyLabelVars();
 el.setW.value=String(labelW);
 el.setH.value=String(labelH);
 el.ghToken.value=GH_TOKEN;
+el.setPW.value=String(paperW); el.setPH.value=String(paperH); el.setMT.value=String(mT); el.setMB.value=String(mB); el.setML.value=String(mL); el.setMR.value=String(mR);
 renderSizeRows(el.eSizeRows,[]);
 renderQuery();
 renderEditList();

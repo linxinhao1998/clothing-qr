@@ -535,12 +535,12 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
               <input id="setMR" type="number" min="0" max="80" step="1" inputmode="numeric">
             </div>
           </div>
-          <div class="sync-status" id="syncStatus"><span class="dot"></span>云端同步：检查中…</div>
-          <div class="sync-cfg" id="syncCfg" hidden>
+          <div class="sync-status" id="syncStatus" style="display:none;"><span class="dot"></span>云端同步：检查中…</div>
+          <div class="sync-cfg" id="syncCfg" hidden style="display:none;">
             <div class="field">
               <label for="ghToken">同步密钥</label>
               <input id="ghToken" type="password" placeholder="粘贴同步密钥">
-              <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">配置一次后自动同步，所有设备扫码可见同一份数据。</div>
+              <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">配置一次后自动保存到云端，所有设备扫码可见同一份数据。</div>
             </div>
             <div class="set-actions" style="margin-top:8px;">
               <button type="button" class="btn dark" id="setSave">应用设置 / 保存密钥</button>
@@ -548,7 +548,7 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
             </div>
           </div>
           <div class="set-actions">
-            <button type="button" class="btn dark" id="setSave">应用设置 / 保存 Token</button>
+            <button type="button" class="btn dark" id="setSave">应用设置</button>
             <button type="button" class="btn ghost" id="setReset">恢复默认</button>
           </div>
           <div class="set-actions" style="margin-top:8px;">
@@ -3156,17 +3156,15 @@ function pushToCloud(){
       });
     })
     .then(function(r){
-      if(r.ok){ toast('已同步到云端'); refreshSyncStatus(); return; }
+      if(r.ok){ refreshSyncStatus(); return; }
       r.json().then(function(j){
-        toast((j&&j.message)?('同步失败：'+j.message):'同步失败', true);
-      }).catch(function(){ toast('同步失败', true); });
+        toast((j&&j.message)?('云端保存失败：'+j.message):'云端保存失败', true);
+      }).catch(function(){ toast('云端保存失败', true); });
     })
-    .catch(function(){ toast('同步失败：请检查网络', true); });
+    .catch(function(){ toast('云端保存失败，请检查网络', true); });
 }
 el.syncNow.addEventListener('click',function(){
-  if(!items.length){ toast('还没有数据可同步',true); return; }
-  if(!GH_TOKEN){ toast('请先在下方填入同步密钥',true); el.ghToken.focus(); return; }
-  toast('正在同步到云端…');
+  if(!items.length){ toast('还没有数据',true); return; }
   pushToCloud();
 });
 function makeQrSvg(text){

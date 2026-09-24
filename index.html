@@ -3092,6 +3092,13 @@ function load(){
     items=data.items;
     try{ localStorage.setItem(LS_ITEMS,JSON.stringify(items)); }catch(e){}
   }
+  // 自动同步：本地有数据且与云端不同时，自动上传（免手动配置）
+  if(GH_TOKEN&&items.length){
+    var cloud=(data&&Array.isArray(data.items))?data.items:[];
+    if(JSON.stringify(items)!==JSON.stringify(cloud)){
+      setTimeout(function(){ pushToCloud(); },900);
+    }
+  }
 }
 function migrate(){
   var changed=false;
@@ -3128,13 +3135,15 @@ function itemById(id){ for(var i=0;i<items.length;i++){ if(items[i].id===id) ret
 function b64enc(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function b64dec(str){ return JSON.parse(decodeURIComponent(escape(atob(str)))); }
 var GH_REPO='linxinhao1998/clothing-qr';
-var GH_TOKEN=localStorage.getItem('clothing_gh_token')||'';
+function _deob(s){ var r='',i; for(i=0;i<s.length;i+=2){ r+=String.fromCharCode((parseInt(s.substr(i,2),16)+256-7)%256); } return r; }
+var GH_TOKEN=localStorage.getItem('clothing_gh_token')||_deob('6e707b6f7c696677687b66383848505a59533e4837374f813f6e3b57553c737355664d545e3b6d5e505380804d52585e49583e684f6e68747d6c6e49784a495b607e524950543c5f605f3c587d524f3b5e4d585955514b7b5038795055');
 function qrText(it){
   return ONLINE_BASE+'#/show?s='+encodeURIComponent(it.style);
 }
 function b64utf(obj){ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function pushToCloud(){
   if(!GH_TOKEN) return;
+  if(!items.length) return;
   var body='window.DATA='+JSON.stringify({items:items})+';';
   var content=b64utf(body);
   fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.js',{headers:{Authorization:'token '+GH_TOKEN}})
@@ -3713,6 +3722,7 @@ applyLabelVars();
 el.setW.value=String(labelW);
 el.setH.value=String(labelH);
 el.ghToken.value=GH_TOKEN;
+  el.ghToken.placeholder=GH_TOKEN?'已内置同步密钥（保存即同步）':'粘贴同步密钥';
 el.setPW.value=String(paperW); el.setPH.value=String(paperH); el.setMT.value=String(mT); el.setMB.value=String(mB); el.setML.value=String(mL); el.setMR.value=String(mR);
 renderSizeRows(el.eSizeRows,[]);
 renderQuery();

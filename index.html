@@ -531,9 +531,12 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
             </div>
           </div>
           <div class="field">
-            <label for="ghToken">GitHub Token（多设备同步用，可选）</label>
-            <input id="ghToken" type="password" placeholder="粘贴 token 后点应用">
-            <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">填入后，录入/修改会自动同步到云端，其他设备扫码可见。</div>
+            <label for="ghToken">同步密钥（管理员设备配置一次）</label>
+            <input id="ghToken" type="password" placeholder="粘贴同步密钥（扫码设备无需此设置）">
+            <div class="hint" style="font-size:11px;color:#8a9199;margin-top:4px;">配置一次后，录入/修改自动同步云端，任何设备扫码直接看到最新数据。</div>
+          </div>
+          <div class="set-actions" style="margin-top:8px;">
+            <button type="button" class="btn ghost" id="syncNow">立即同步到云端</button>
           </div>
           <div class="set-actions">
             <button type="button" class="btn dark" id="setSave">应用设置 / 保存 Token</button>
@@ -3039,7 +3042,7 @@ var el={
   mStyle:$('#mStyle'), mSizeRows:$('#mSizeRows'), mTotal:$('#mTotal'), mPrice:$('#mPrice'),
   mImgDrop:$('#mImgDrop'), mImg:$('#mImg'), mImgPh:$('#mImgPh'), mImgPrev:$('#mImgPrev'), mImgClear:$('#mImgClear'), mDelete:$('#mDelete'),
   printPreview:$('#printPreview'), pvGrid:$('#pvGrid'), pvCount:$('#pvCount'), pvClose:$('#pvClose'),
-  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), exportData:$('#exportData'), importDataBtn:$('#importDataBtn'), importDataFile:$('#importDataFile'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
+  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), exportData:$('#exportData'), importDataBtn:$('#importDataBtn'), importDataFile:$('#importDataFile'), syncNow:$('#syncNow'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
   toast:$('#toast')
 };
 
@@ -3134,9 +3137,20 @@ function pushToCloud(){
         body:JSON.stringify({message:'update items',content:content,sha:cur&&cur.sha})
       });
     })
-    .then(function(r){ if(r.ok) toast('已同步到云端'); })
-    .catch(function(){});
+    .then(function(r){
+      if(r.ok){ toast('已同步到云端'); return; }
+      r.json().then(function(j){
+        toast((j&&j.message)?('同步失败：'+j.message):'同步失败', true);
+      }).catch(function(){ toast('同步失败', true); });
+    })
+    .catch(function(){ toast('同步失败：请检查网络', true); });
 }
+el.syncNow.addEventListener('click',function(){
+  if(!items.length){ toast('还没有数据可同步',true); return; }
+  if(!GH_TOKEN){ toast('请先在下方填入同步密钥',true); el.ghToken.focus(); return; }
+  toast('正在同步到云端…');
+  pushToCloud();
+});
 function makeQrSvg(text){
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
   var qr=qrcode(0,'L');

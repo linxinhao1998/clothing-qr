@@ -3691,7 +3691,8 @@ function exportPdf(){
   if(typeof window.jspdf==='undefined') need.push(loadJs('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'));
   if(typeof window.html2canvas==='undefined') need.push(loadJs('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'));
   var run=function(){
-    var jsP=new window.jspdf.jsPDF({unit:'mm',format:[paperW,paperH]});
+    var orient=paperW>paperH?'l':'p';
+    var jsP=new window.jspdf.jsPDF({orientation:orient,unit:'mm',format:[paperW,paperH]});
     var availW=paperW-mL-mR, y= mT, idx=0;
     var list=Array.prototype.slice.call(cards);
     var maxH=paperH-mT-mB;
@@ -3701,7 +3702,7 @@ function exportPdf(){
         var img=cv.toDataURL('image/png');
         var cardW=availW, cardH=availW*cv.height/cv.width;
         if(cardH>maxH){ cardH=maxH; cardW=cardH*cv.width/cv.height; }
-        if(y+cardH>paperH-mB){ jsP.addPage([paperW,paperH]); y=mT; }
+        if(y+cardH>paperH-mB){ jsP.addPage([paperW,paperH], orient); y=mT; }
         var x=mL+(availW-cardW)/2;
         jsP.addImage(img,'PNG',x,y,cardW,cardH);
         y+=cardH+3;

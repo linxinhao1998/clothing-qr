@@ -3079,8 +3079,8 @@ function load(){
   try{
     var st=JSON.parse(localStorage.getItem(LS_SET)||'null');
     if(st&&st.w>=20&&st.w<=100&&st.h>=30&&st.h<=140){ labelW=st.w; labelH=st.h; }
-    if(st&&st.pw>=50&&st.pw<=600) paperW=st.pw;
-    if(st&&st.ph>=50&&st.ph<=600) paperH=st.ph;
+    if(st&&st.pw>=20&&st.pw<=600) paperW=st.pw;
+    if(st&&st.ph>=20&&st.ph<=600) paperH=st.ph;
     if(st&&st.mt>=0&&st.mt<=80) mT=st.mt;
     if(st&&st.mb>=0&&st.mb<=80) mB=st.mb;
     if(st&&st.ml>=0&&st.ml<=80) mL=st.ml;
@@ -3587,8 +3587,8 @@ el.setSave.addEventListener('click',function(){
   labelW=w; labelH=h;
   var pw=parseInt(el.setPW.value,10),ph=parseInt(el.setPH.value,10);
   var mt=parseInt(el.setMT.value,10),mb=parseInt(el.setMB.value,10),ml=parseInt(el.setML.value,10),mr=parseInt(el.setMR.value,10);
-  if(pw>=50&&pw<=600) paperW=pw; else { toast('纸张宽需在 50–600mm 之间',true); return; }
-  if(ph>=50&&ph<=600) paperH=ph; else { toast('纸张高需在 50–600mm 之间',true); return; }
+  if(pw>=20&&pw<=600) paperW=pw; else { toast('纸张宽需在 20–600mm 之间',true); return; }
+  if(ph>=20&&ph<=600) paperH=ph; else { toast('纸张高需在 20–600mm 之间',true); return; }
   if(mt>=0&&mt<=80) mT=mt;
   if(mb>=0&&mb<=80) mB=mb;
   if(ml>=0&&ml<=80) mL=ml;

@@ -3640,7 +3640,11 @@ el.logoutBtn.addEventListener('click',function(){
 function applyPage(){
   var ps=document.getElementById('pgStyle');
   if(!ps){ ps=document.createElement('style'); ps.id='pgStyle'; document.head.appendChild(ps); }
-  ps.textContent='@page{size:'+paperW+'mm '+paperH+'mm;margin:'+mT+'mm '+mR+'mm '+mB+'mm '+mL+'mm;}';
+  var availW=paperW-mL-mR, availH=paperH-mT-mB;
+  var scale=Math.min(availW/labelW, availH/labelH, 1);
+  scale=Math.max(scale,0.08);
+  ps.textContent='@page{size:'+paperW+'mm '+paperH+'mm;margin:'+mT+'mm '+mR+'mm '+mB+'mm '+mL+'mm;}'
+    +'@media print{:root{--mmp:'+(3.7795*scale)+';}}';
 }
 
 /* 导出 PDF：卡片先做"防溢出适配"（字号过大导致文字被裁时自动缩小），再渲染 */

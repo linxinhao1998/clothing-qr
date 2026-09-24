@@ -3163,7 +3163,7 @@ function pushToCloud(){
   if(!GH_TOKEN) return;
   if(!items.length) return;
   var body='window.DATA='+JSON.stringify({items:items})+';';
-  var content=b64utf(body);
+  var content=btoa(unescape(encodeURIComponent(body)));
   fetch('https://api.github.com/repos/'+GH_REPO+'/contents/data.js',{headers:{Authorization:'token '+GH_TOKEN}})
     .then(function(r){return r.ok?r.json():{};})
     .then(function(cur){

@@ -542,6 +542,11 @@ input,select{font-family:inherit;font-size:15px;color:var(--ink);}
           <div class="set-actions" style="margin-top:8px;">
             <button type="button" class="btn primary" id="exportPdf">导出 PDF</button>
           </div>
+          <div class="set-actions" style="margin-top:8px;">
+            <button type="button" class="btn ghost" id="exportData">导出数据（备份）</button>
+            <button type="button" class="btn ghost" id="importDataBtn">导入数据</button>
+            <input type="file" id="importDataFile" accept=".json,application/json" hidden>
+          </div>
         </div>
       </div>
 
@@ -3034,7 +3039,7 @@ var el={
   mStyle:$('#mStyle'), mSizeRows:$('#mSizeRows'), mTotal:$('#mTotal'), mPrice:$('#mPrice'),
   mImgDrop:$('#mImgDrop'), mImg:$('#mImg'), mImgPh:$('#mImgPh'), mImgPrev:$('#mImgPrev'), mImgClear:$('#mImgClear'), mDelete:$('#mDelete'),
   printPreview:$('#printPreview'), pvGrid:$('#pvGrid'), pvCount:$('#pvCount'), pvClose:$('#pvClose'),
-  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
+  detailMask:$('#detailMask'), showStyle:$('#showStyle'), showSizes:$('#showSizes'), showTotal:$('#showTotal'), showPrice:$('#showPrice'), showImg:$('#showImg'), loginUser:$('#loginUser'), loginPass:$('#loginPass'), loginBtn:$('#loginBtn'), loginErr:$('#loginErr'), logoutBtn:$('#logoutBtn'), exportPdf:$('#exportPdf'), exportData:$('#exportData'), importDataBtn:$('#importDataBtn'), importDataFile:$('#importDataFile'), dTitle:$('#dTitle'), dQrBox:$('#dQrBox'), dImg:$('#dImg'), dBlock:$('#dBlock'), dQrText:$('#dQrText'), dClose:$('#dClose'),
   toast:$('#toast')
 };
 
@@ -3615,6 +3620,37 @@ function exportPdf(){
 el.exportPdf.addEventListener('click',function(){
   if(!el.pvGrid.querySelector('.label-card')){ toast('请先勾选并生成二维码',true); return; }
   exportPdf();
+});
+
+/* 数据导出 / 导入（备份与迁移，导入后会同步云端） */
+el.exportData.addEventListener('click',function(){
+  if(!items.length){ toast('还没有数据可导出',true); return; }
+  var blob=new Blob([JSON.stringify({app:'clothing-qr',exported:new Date().toISOString(),items:items})],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='clothing-qr-data.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },600);
+  toast('已导出 '+items.length+' 款');
+});
+el.importDataBtn.addEventListener('click',function(){ el.importDataFile.click(); });
+el.importDataFile.addEventListener('change',function(){
+  var f=el.importDataFile.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      var list=d&&d.items?d.items:(Array.isArray(d)?d:null);
+      if(!list||!list.length){ toast('文件格式不对或没有数据',true); return; }
+      items=list;
+      save();
+      el.statCount.textContent=items.length+' 款';
+      renderQuery(); renderEditList();
+      toast('已导入 '+items.length+' 款');
+    }catch(e){ toast('读取文件失败',true); }
+  };
+  r.readAsText(f);
+  el.importDataFile.value='';
 });
 el.pvGrid.addEventListener('click',function(e){
   var card=e.target.closest('.label-card');

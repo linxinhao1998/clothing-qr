@@ -3696,7 +3696,7 @@ function exportPdf(){
     var list=Array.prototype.slice.call(cards);
     var maxH=paperH-mT-mB;
     var step=function(){
-      if(idx>=list.length){ jsP.save('织女吊牌标签.pdf'); toast('PDF 已导出'); return; }
+      if(idx>=list.length){ jsP.save('织女吊牌标签.pdf'); toast('PDF 已导出（纸张 '+paperW+'×'+paperH+'mm）'); return; }
       snapCard(list[idx]).then(function(cv){
         var img=cv.toDataURL('image/png');
         var cardW=availW, cardH=availW*cv.height/cv.width;
